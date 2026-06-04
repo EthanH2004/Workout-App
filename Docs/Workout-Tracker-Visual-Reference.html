@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Tracker — Visual Design System v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo:wdth,wght@62..125,100..900&display=swap">
+<style>
+:root{
+  --bg:#0A0A0B; --surface:#141416; --raised:#1E1E21; --overlay:#26262A; --high:#2E2E33;
+  --border-subtle:rgba(255,255,255,0.07); --border-default:rgba(255,255,255,0.10); --border-strong:rgba(255,255,255,0.16);
+  --text-primary:#FFFFFF; --text-secondary:#9A9A9D; --text-tertiary:#6A6A6D; --text-disabled:#4A4A4D;
+  --accent:#FF6A28; --accent-pressed:#E0561C; --accent-text:#FF8A4D; --accent-subtle:rgba(255,106,40,0.14); --accent-border:rgba(255,106,40,0.40);
+  --success:#3DDC84; --destructive:#FF5C5C; --pr:#A98BFF; --pr-subtle:rgba(169,139,255,0.15); --warning:#E8A33A; --text-on-accent:#141210; --ghost:#838388;
+  --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px;
+  --elev-1:0 6px 20px rgba(0,0,0,0.45);
+  --elev-2:0 8px 24px rgba(0,0,0,0.50);
+  --elev-3:0 -12px 36px rgba(0,0,0,0.60);
+  --font:'Archivo',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:#060607;color:var(--text-primary);font-family:var(--font);font-weight:400;-webkit-font-smoothing:antialiased;line-height:1.5;padding:0 20px 80px;}
+.exp{font-variation-settings:'wdth' 118,'wght' 800;}
+.tab{font-variant-numeric:tabular-nums;}
+.wrap{max-width:1060px;margin:0 auto;}
+
+/* page header */
+.masthead{padding:64px 0 40px;border-bottom:0.5px solid var(--border-default);}
+.kicker{font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent-text);margin-bottom:14px;}
+.masthead h1{font-size:46px;line-height:0.98;font-variation-settings:'wdth' 118,'wght' 800;letter-spacing:0.01em;}
+.masthead .lede{color:var(--text-secondary);font-size:16px;max-width:640px;margin-top:16px;}
+.note{margin-top:18px;font-size:13px;color:var(--text-tertiary);background:var(--surface);border:0.5px solid var(--border-subtle);border-radius:var(--r-md);padding:12px 16px;max-width:640px;}
+
+/* index */
+.index{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px;}
+.index a{font-size:12px;color:var(--text-secondary);text-decoration:none;background:var(--surface);border:0.5px solid var(--border-subtle);border-radius:999px;padding:6px 13px;transition:all 130ms cubic-bezier(.2,0,0,1);}
+.index a:hover{color:#fff;border-color:var(--accent-border);}
+
+/* sections */
+section{padding:54px 0 0;}
+.sec-label{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent-text);margin-bottom:10px;}
+.sec-title{font-size:26px;font-variation-settings:'wdth' 116,'wght' 800;margin-bottom:6px;}
+.sec-desc{color:var(--text-secondary);font-size:14px;max-width:620px;margin-bottom:26px;}
+.block{margin-bottom:34px;}
+.block h3{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:4px;}
+.block .bd{font-size:12px;color:var(--text-tertiary);margin-bottom:14px;}
+
+/* canvas = how the app's page background looks; components sit on it */
+.canvas{background:var(--bg);border:0.5px solid var(--border-subtle);border-radius:var(--r-lg);padding:22px;}
+.spec{font-size:11px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;}
+.cap{font-size:11px;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-secondary);}
+
+.row{display:flex;flex-wrap:wrap;gap:14px;}
+.grid{display:grid;gap:14px;}
+.g-auto{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));}
+
+/* swatches */
+.swatches{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.sw{border-radius:var(--r-md);overflow:hidden;border:0.5px solid var(--border-subtle);}
+.sw .chip{height:62px;}
+.sw .meta{padding:9px 11px;background:var(--surface);}
+.sw .nm{font-size:12px;color:var(--text-primary);}
+.sw .hx{font-size:11px;color:var(--text-tertiary);font-variant-numeric:tabular-nums;margin-top:2px;}
+
+/* type specimen */
+.typ-row{display:flex;align-items:baseline;justify-content:space-between;gap:20px;padding:13px 0;border-bottom:0.5px solid var(--border-subtle);}
+.typ-row:last-child{border-bottom:none;}
+.typ-spec{font-size:11px;color:var(--text-tertiary);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0;}
+
+/* spacing bars */
+.sp-row{display:flex;align-items:center;gap:14px;margin-bottom:8px;}
+.sp-bar{height:14px;background:var(--accent);border-radius:2px;}
+.sp-lbl{font-size:12px;color:var(--text-secondary);width:90px;flex-shrink:0;font-variant-numeric:tabular-nums;}
+
+/* radius ladder */
+.rad{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end;}
+.rad .box{width:64px;height:64px;background:var(--raised);border:0.5px solid var(--border-default);}
+.rad .rl{font-size:11px;color:var(--text-secondary);text-align:center;margin-top:7px;}
+
+/* buttons */
+.btn{font-family:var(--font);font-size:15px;font-weight:600;border:none;border-radius:var(--r-sm);padding:13px 18px;cursor:pointer;text-align:center;transition:transform 130ms cubic-bezier(.2,0,0,1),filter 130ms cubic-bezier(.2,0,0,1),background 130ms;}
+.btn:active{transform:scale(0.97);filter:brightness(0.92);}
+.btn-primary{background:var(--accent);color:var(--text-on-accent);}
+.btn-secondary{background:var(--raised);color:#EDEDED;}
+.btn-tertiary{background:transparent;color:var(--text-secondary);}
+.btn-destructive{background:transparent;color:var(--destructive);}
+.btn-block{display:block;width:100%;}
+.iconbtn{width:44px;height:44px;border-radius:var(--r-sm);background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 130ms;}
+.iconbtn:hover{background:var(--raised);}
+
+/* input */
+.field-label{font-size:11px;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:7px;}
+.input{height:48px;background:var(--raised);border:0.5px solid var(--border-default);border-radius:var(--r-sm);padding:0 14px;color:#fff;font-family:var(--font);font-size:16px;width:100%;display:flex;align-items:center;}
+.input.focused{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-subtle);}
+.input .ph{color:var(--text-tertiary);}
+
+/* chips */
+.chip-pill{font-size:13px;color:#C9C9CC;background:var(--high);border-radius:999px;padding:6px 14px;font-variant-numeric:tabular-nums;}
+.pr-chip{font-size:11px;color:var(--pr);background:var(--pr-subtle);padding:3px 9px;border-radius:var(--r-xs);letter-spacing:0.05em;}
+.range{display:flex;gap:4px;}
+.range span{font-size:12px;color:var(--text-secondary);padding:5px 12px;border-radius:6px;font-variant-numeric:tabular-nums;}
+.range span.on{background:var(--accent);color:var(--text-on-accent);}
+
+/* cards */
+.card{background:var(--surface);border-radius:var(--r-md);padding:16px;box-shadow:var(--elev-1);}
+.card.raised{background:var(--raised);box-shadow:var(--elev-2);}
+.card.featured{border:1px solid var(--accent-border);}
+
+/* set rows */
+.setrow{display:grid;grid-template-columns:64px 1fr auto 44px;align-items:center;gap:14px;padding:11px 4px;border-top:0.5px solid var(--border-subtle);}
+.setrow .sl{font-size:13px;color:var(--text-secondary);}
+.setrow .wv{font-size:16px;font-weight:500;color:#fff;text-align:right;font-variant-numeric:tabular-nums;}
+.setrow .ghost{color:var(--ghost);font-weight:400;}
+.check{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;}
+.check.done{background:var(--accent);}
+.check.todo{border:1.5px solid #3A3A3E;}
+
+/* list rows */
+.listrow{display:flex;align-items:center;gap:12px;padding:14px 4px;border-top:0.5px solid var(--border-subtle);}
+.listrow:first-child{border-top:none;}
+
+/* phone mockups */
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:18px;}
+.phone{background:var(--bg);border-radius:30px;border:0.5px solid var(--border-subtle);overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,0.5);}
+.statusbar{display:flex;justify-content:space-between;align-items:center;padding:9px 20px 2px;}
+.statusbar .t{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;}
+.tabbar{display:flex;justify-content:space-around;align-items:center;padding:11px 8px 16px;border-top:0.5px solid var(--border-subtle);overflow:visible;}
+.tabitem{text-align:center;}
+.tabitem .tl{font-size:10px;margin-top:3px;}
+.fab{width:52px;height:52px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto;box-shadow:0 8px 20px rgba(255,106,40,0.4);}
+
+/* sheet */
+.sheet{background:#1A1A1E;border-top:0.5px solid var(--border-default);border-radius:18px 18px 0 0;padding:12px 16px 18px;box-shadow:var(--elev-3);}
+.grabber{width:34px;height:4px;border-radius:2px;background:#3A3A3E;margin:0 auto 14px;}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.key{font-family:var(--font);font-size:24px;color:#fff;text-align:center;padding:11px 0;border-radius:var(--r-sm);font-variant-numeric:tabular-nums;}
+
+.eq{text-align:center;}
+.eq .el{font-size:10px;color:var(--text-secondary);margin-top:5px;}
+
+/* keep vs avoid */
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;}
+.cmp-h{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-secondary);margin-bottom:10px;}
+.avoid-card{background:#000;border-radius:22px;padding:16px;border:1px solid #39FF14;font-family:system-ui,sans-serif;}
+
+footer{margin-top:70px;padding-top:28px;border-top:0.5px solid var(--border-default);color:var(--text-tertiary);font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker">Workout Tracker · Document 2 of 6 · Companion to the written spec</div>
+    <h1>Visual<br>Design System</h1>
+    <p class="lede">The full kit of parts, made visible. Every token and component on its own, the states split out, and a few assembled sample screens. These are <strong style="color:var(--text-primary);font-weight:600;">examples of the pieces to use</strong> — not the final design of any page.</p>
+    <div class="note">Dark only · stark &amp; graphic · true-neutral grays · one warm-orange accent · Archivo · big tabular numbers · snappy motion. Everything here is dark-on-dark by design; each component sits on a darker app-canvas panel so you can see how it separates by lightness.</div>
+    <nav class="index">
+      <a href="#color">Color</a>
+      <a href="#type">Type</a>
+      <a href="#spacing">Spacing</a>
+      <a href="#radius">Radius</a>
+      <a href="#elevation">Elevation</a>
+      <a href="#icons">Icons</a>
+      <a href="#motion">Motion</a>
+      <a href="#buttons">Buttons</a>
+      <a href="#inputs">Inputs &amp; pad</a>
+      <a href="#setrow">Set row</a>
+      <a href="#cards">Cards &amp; lists</a>
+      <a href="#tabbar">Tab bar</a>
+      <a href="#charts">Charts</a>
+      <a href="#together">Put together</a>
+      <a href="#avoid">Keep vs avoid</a>
+    </nav>
+  </header>
+
+  <!-- ============ COLOR ============ -->
+  <section id="color">
+    <div class="sec-label">Foundations</div>
+    <h2 class="sec-title">Color</h2>
+    <p class="sec-desc">Mostly grayscale, true-neutral, near-black (never pure #000). One saturated accent carries all the energy. Semantic colors appear rarely.</p>
+
+    <div class="block">
+      <h3>Surfaces — elevation by lightness</h3>
+      <div class="bd">Each layer up gets lighter; this is the primary way depth is communicated.</div>
+      <div class="swatches">
+        <div class="sw"><div class="chip" style="background:#0A0A0B"></div><div class="meta"><div class="nm">bg</div><div class="hx">#0A0A0B · page</div></div></div>
+        <div class="sw"><div class="chip" style="background:#141416"></div><div class="meta"><div class="nm">surface</div><div class="hx">#141416 · cards</div></div></div>
+        <div class="sw"><div class="chip" style="background:#1E1E21"></div><div class="meta"><div class="nm">surfaceRaised</div><div class="hx">#1E1E21 · active/input</div></div></div>
+        <div class="sw"><div class="chip" style="background:#26262A"></div><div class="meta"><div class="nm">surfaceOverlay</div><div class="hx">#26262A · sheets</div></div></div>
+        <div class="sw"><div class="chip" style="background:#2E2E33"></div><div class="meta"><div class="nm">surfaceHigh</div><div class="hx">#2E2E33 · keys/chips</div></div></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>Text</h3>
+      <div class="canvas">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:#FFFFFF;font-size:18px;">Primary — headlines &amp; values</span><span class="spec">#FFFFFF · ~20:1</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:#9A9A9D;font-size:16px;">Secondary — supporting text, labels</span><span class="spec">#9A9A9D · ~6.6:1</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:#6A6A6D;font-size:16px;">Tertiary — hints, axis labels (large only)</span><span class="spec">#6A6A6D · ~3.4:1</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;"><span style="color:#4A4A4D;font-size:16px;">Disabled</span><span class="spec">#4A4A4D</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="block" style="flex:1;min-width:260px;">
+        <h3>Accent — warm orange (swappable token)</h3>
+        <div class="swatches">
+          <div class="sw"><div class="chip" style="background:#FF6A28"></div><div class="meta"><div class="nm">accent</div><div class="hx">#FF6A28</div></div></div>
+          <div class="sw"><div class="chip" style="background:#E0561C"></div><div class="meta"><div class="nm">accentPressed</div><div class="hx">#E0561C</div></div></div>
+          <div class="sw"><div class="chip" style="background:#FF8A4D"></div><div class="meta"><div class="nm">accentText</div><div class="hx">#FF8A4D · small text</div></div></div>
+          <div class="sw"><div class="chip" style="background:#0A0A0B"><div style="height:100%;background:var(--accent-subtle)"></div></div><div class="meta"><div class="nm">accentSubtle</div><div class="hx">14% fill</div></div></div>
+        </div>
+      </div>
+      <div class="block" style="flex:1;min-width:260px;">
+        <h3>Semantic — used sparingly</h3>
+        <div class="swatches">
+          <div class="sw"><div class="chip" style="background:#3DDC84"></div><div class="meta"><div class="nm">success</div><div class="hx">#3DDC84 · confirm</div></div></div>
+          <div class="sw"><div class="chip" style="background:#FF5C5C"></div><div class="meta"><div class="nm">destructive</div><div class="hx">#FF5C5C · delete</div></div></div>
+          <div class="sw"><div class="chip" style="background:#A98BFF"></div><div class="meta"><div class="nm">pr</div><div class="hx">#A98BFF · record</div></div></div>
+          <div class="sw"><div class="chip" style="background:#E8A33A"></div><div class="meta"><div class="nm">warning</div><div class="hx">#E8A33A · rare</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>Progress deltas</h3>
+      <div class="bd">Gains use the accent; losses stay muted neutral (direction carried by the sign). No red/green deltas.</div>
+      <div class="canvas" style="display:flex;gap:30px;flex-wrap:wrap;">
+        <div><div class="cap">Gain</div><div class="exp tab" style="font-size:24px;margin-top:4px;">176 lb <span style="color:var(--accent-text);font-size:14px;font-variation-settings:normal;">+26</span></div></div>
+        <div><div class="cap">Loss</div><div class="exp tab" style="font-size:24px;margin-top:4px;">152 lb <span style="color:var(--text-secondary);font-size:14px;font-variation-settings:normal;">−8</span></div></div>
+        <div><div class="cap">PR chip</div><div style="margin-top:6px;"><span class="pr-chip">PR</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TYPE ============ -->
+  <section id="type">
+    <div class="sec-label">Foundations</div>
+    <h2 class="sec-title">Typography</h2>
+    <p class="sec-desc">One family — Archivo. Expanded width (wght 800) for hero numbers and headings; standard width for everything else. Dramatic two-speed: a few big moments above a calm scale. Numbers are lining + tabular.</p>
+
+    <div class="canvas">
+      <div class="typ-row"><span class="exp tab" style="font-size:48px;line-height:1;">225</span><span class="typ-spec">displayXL · Expanded · 48 / 800 · tabular<br>the weight being entered</span></div>
+      <div class="typ-row"><span class="exp tab" style="font-size:34px;">169 lb</span><span class="typ-spec">displayL · Expanded · 34 / 800 · tabular<br>hero stat (1RM)</span></div>
+      <div class="typ-row"><span class="exp" style="font-size:28px;letter-spacing:0.01em;">Ready to lift</span><span class="typ-spec">titleXL · Expanded · 28 / 800<br>screen hero</span></div>
+      <div class="typ-row"><span style="font-size:20px;font-weight:600;">Screen title</span><span class="typ-spec">title · 20 / 600</span></div>
+      <div class="typ-row"><span style="font-size:17px;font-weight:600;">Bench press — card title</span><span class="typ-spec">headline · 17 / 600</span></div>
+      <div class="typ-row"><span style="font-size:16px;font-weight:400;color:var(--text-secondary);">Default body text for descriptions and longer copy.</span><span class="typ-spec">body · 16 / 400</span></div>
+      <div class="typ-row"><span style="font-size:15px;font-weight:500;">Emphasized body / button label</span><span class="typ-spec">bodyStrong · 15 / 500</span></div>
+      <div class="typ-row"><span style="font-size:13px;color:var(--text-secondary);">Secondary caption</span><span class="typ-spec">caption · 13 / 400</span></div>
+      <div class="typ-row"><span style="font-size:11px;font-weight:500;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-secondary);">Overline label</span><span class="typ-spec">overline · 11 / 500 · 0.13em · UPPER</span></div>
+      <div class="typ-row"><span class="tab" style="font-size:16px;font-weight:500;">135 × 8</span><span class="typ-spec">numInline · 16 / 500 · tabular</span></div>
+      <div class="typ-row"><span class="exp tab" style="font-size:22px;font-variation-settings:'wdth' 100,'wght' 700;">169</span><span class="typ-spec">numEmphasis · 22 / 700 · tabular</span></div>
+    </div>
+
+    <div class="block" style="margin-top:18px;">
+      <h3>Tabular numerals — columns always align</h3>
+      <div class="bd">Each digit takes equal width, so a row doesn't reshuffle when a 1 becomes an 8.</div>
+      <div class="canvas" style="max-width:280px;">
+        <div class="tab" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border-subtle);"><span style="color:var(--text-secondary)">Set 1</span><span>135 lb × 8</span></div>
+        <div class="tab" style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border-subtle);"><span style="color:var(--text-secondary)">Set 2</span><span>95 lb × 12</span></div>
+        <div class="tab" style="display:flex;justify-content:space-between;padding:6px 0;"><span style="color:var(--text-secondary)">Set 3</span><span>225 lb × 5</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SPACING ============ -->
+  <section id="spacing">
+    <div class="sec-label">Foundations</div>
+    <h2 class="sec-title">Spacing &amp; layout</h2>
+    <p class="sec-desc">8pt-based, balanced density — comfortable and premium, efficient in the logging table. Screen padding 16, card padding 16, section gap 24, set-row vertical padding ~12.</p>
+    <div class="canvas">
+      <div class="sp-row"><span class="sp-lbl">space-1 · 4</span><span class="sp-bar" style="width:4px;"></span></div>
+      <div class="sp-row"><span class="sp-lbl">space-2 · 8</span><span class="sp-bar" style="width:8px;"></span></div>
+      <div class="sp-row"><span class="sp-lbl">space-3 · 12</span><span class="sp-bar" style="width:12px;"></span></div>
+      <div class="sp-row"><span class="sp-lbl">space-4 · 16</span><span class="sp-bar" style="width:16px;"></span></div>
+      <div class="sp-row"><span class="sp-lbl">space-5 · 20</span><span class="sp-bar" style="width:20px;"></span></div>
+      <div class="sp-row"><span class="sp-lbl">space-6 · 24</span><span class="sp-bar" style="width:24px;"></span></div>
+      <div class="sp-row"><span class="sp-lbl">space-8 · 32</span><span class="sp-bar" style="width:32px;"></span></div>
+      <div class="sp-row"><span class="sp-lbl">space-10 · 40</span><span class="sp-bar" style="width:40px;"></span></div>
+      <div class="sp-row"><span class="sp-lbl">space-12 · 48</span><span class="sp-bar" style="width:48px;"></span></div>
+    </div>
+  </section>
+
+  <!-- ============ RADIUS ============ -->
+  <section id="radius">
+    <div class="sec-label">Foundations</div>
+    <h2 class="sec-title">Corner radius</h2>
+    <p class="sec-desc">8px-anchored. Crisp, never bubbly. Inner radius is always one step tighter than its container.</p>
+    <div class="canvas" style="display:flex;flex-wrap:wrap;gap:34px;align-items:flex-end;">
+      <div class="rad">
+        <div><div class="box" style="border-radius:4px;"></div><div class="rl">xs · 4</div></div>
+        <div><div class="box" style="border-radius:8px;"></div><div class="rl">sm · 8</div></div>
+        <div><div class="box" style="border-radius:12px;"></div><div class="rl">md · 12</div></div>
+        <div><div class="box" style="border-radius:16px;"></div><div class="rl">lg · 16</div></div>
+        <div><div class="box" style="border-radius:999px;"></div><div class="rl">full</div></div>
+      </div>
+      <div style="flex:1;min-width:220px;">
+        <div class="cap" style="margin-bottom:8px;">Nesting (card 12 · input 8 · chip 4)</div>
+        <div style="background:var(--surface);border-radius:12px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span class="cap">Bench press</span><span class="pr-chip">PR</span></div>
+          <div style="background:var(--raised);border:0.5px solid var(--border-default);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;"><span style="color:var(--text-secondary);font-size:13px;">Weight</span><span class="tab" style="font-size:15px;">135 lb</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ELEVATION ============ -->
+  <section id="elevation">
+    <div class="sec-label">Foundations</div>
+    <h2 class="sec-title">Elevation</h2>
+    <p class="sec-desc">Depth comes mostly from lightness, with a soft supporting shadow (stored as mode-aware tokens). Floating layers add a dim scrim behind plus a faint top-edge highlight.</p>
+    <div class="canvas grid g-auto">
+      <div>
+        <div class="cap" style="margin-bottom:8px;">Resting card · elev-1</div>
+        <div style="background:var(--surface);border-radius:12px;padding:15px;box-shadow:var(--elev-1);"><div class="cap">Incline press</div><div class="tab" style="margin-top:6px;color:var(--text-secondary);">Set 2 — 95 × 12</div></div>
+      </div>
+      <div>
+        <div class="cap" style="margin-bottom:8px;">Raised / active · elev-2</div>
+        <div style="background:var(--raised);border-radius:12px;padding:15px;box-shadow:var(--elev-2);"><div class="cap" style="color:var(--text-secondary)">Bench press</div><div class="tab" style="margin-top:6px;color:#fff;">Set 3 — 135 × 8</div></div>
+      </div>
+      <div>
+        <div class="cap" style="margin-bottom:8px;">Floating sheet · elev-3 + scrim</div>
+        <div style="position:relative;background:var(--bg);border-radius:12px;height:96px;overflow:hidden;">
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;background:#1E1E22;border-top:0.5px solid var(--border-subtle);border-radius:14px 14px 0 0;padding:12px;box-shadow:var(--elev-3);"><div class="grabber" style="margin-bottom:8px;"></div><div class="tab" style="text-align:center;color:var(--text-secondary);font-size:12px;">number pad rises here</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ICONS ============ -->
+  <section id="icons">
+    <div class="sec-label">Foundations</div>
+    <h2 class="sec-title">Iconography</h2>
+    <p class="sec-desc">Line, 1.5px stroke, round caps &amp; joins (Phosphor for UI). Inactive is line; active is filled accent. Per-exercise icons are a small custom set keyed to equipment.</p>
+
+    <div class="canvas grid g-auto">
+      <div>
+        <div class="cap" style="margin-bottom:12px;">UI icons · line 1.5px</div>
+        <div style="display:flex;gap:20px;color:#E6E6E6;">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V20h14V9.5"/></svg>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="M7 15l3-4 3 2 4-6"/></svg>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="3"/><path d="M6 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/></svg>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        </div>
+      </div>
+      <div>
+        <div class="cap" style="margin-bottom:12px;">Inactive vs active</div>
+        <div style="display:flex;gap:24px;align-items:center;">
+          <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 9.5V20h14V9.5"/></svg><div class="el">line</div></div>
+          <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="#FF6A28"><path d="M12 3l9 8h-2v9h-5v-5h-4v5H5v-9H3z"/></svg><div class="el" style="color:var(--accent-text)">filled accent</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block" style="margin-top:14px;">
+      <h3>Per-exercise icons — by equipment (custom set)</h3>
+      <div class="canvas" style="display:flex;flex-wrap:wrap;gap:26px;color:#E6E6E6;">
+        <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M20 12h2M5 9v6M7 10.5v3M17 10.5v3M19 9v6M7 12h10"/></svg><div class="el">Barbell</div></div>
+        <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5"/></svg><div class="el">Dumbbell</div></div>
+        <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 8a2.5 2.5 0 0 1 5 0"/><path d="M8 11c0-1.8 1.8-2.8 4-2.8s4 1 4 2.8c0 3.2-1.2 6-4 6s-4-2.8-4-6z"/></svg><div class="el">Kettlebell</div></div>
+        <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="6" width="4" height="12" rx="1"/><rect x="11" y="3" width="4" height="18" rx="1"/><rect x="17" y="9" width="4" height="6" rx="1"/></svg><div class="el">Plates</div></div>
+        <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v6M8 9h8M9 20l3-7 3 7"/></svg><div class="el">Bodyweight</div></div>
+        <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.2"/><path d="M12 7.2v5l-4 7M12 12.2l4 7"/></svg><div class="el">Cable</div></div>
+        <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 14h7v6M14 4v6h6"/></svg><div class="el">Machine</div></div>
+        <div class="eq"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8c4 5 12 5 16 0M4 16c4-5 12-5 16 0"/></svg><div class="el">Band</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MOTION ============ -->
+  <section id="motion">
+    <div class="sec-label">Foundations</div>
+    <h2 class="sec-title">Motion <span style="font-size:13px;color:var(--text-tertiary);font-variation-settings:normal;">— tap these</span></h2>
+    <p class="sec-desc">Snappy and responsive (~130ms, quick-decelerate curve). Press = scale 0.97. Check-off uses a light spring + haptic. The demo below is live.</p>
+    <div class="canvas" style="display:flex;flex-wrap:wrap;gap:30px;align-items:center;">
+      <button class="btn btn-primary" style="min-width:160px;">Press me</button>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button id="democheck" aria-label="check" style="width:34px;height:34px;border-radius:50%;border:1.5px solid #3A3A3E;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 130ms cubic-bezier(.2,0,0,1),border-color 130ms;">
+          <svg id="democheckicon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#141210" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0;transform:scale(.4);transition:opacity 130ms cubic-bezier(.2,0,0,1),transform 160ms cubic-bezier(.2,0,0,1);"><path d="M5 12l5 5L19 7"/></svg>
+        </button>
+        <span style="color:var(--text-secondary);font-size:13px;">tap to check a set</span>
+      </div>
+      <div style="display:flex;gap:18px;color:var(--text-tertiary);font-size:12px;">
+        <span>instant 80ms</span><span style="color:var(--accent-text)">fast 130ms (default)</span><span>medium 200ms</span><span>slow 280ms</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BUTTONS ============ -->
+  <section id="buttons">
+    <div class="sec-label">Components</div>
+    <h2 class="sec-title">Buttons</h2>
+    <p class="sec-desc">Hierarchy: orange primary → gray secondary → text tertiary → red destructive. Orange stays special as the only saturated element. (All are live — press to feel the scale.)</p>
+    <div class="canvas grid g-auto">
+      <div><div class="cap" style="margin-bottom:10px;">Primary</div><button class="btn btn-primary btn-block">Start workout</button></div>
+      <div><div class="cap" style="margin-bottom:10px;">Secondary</div><button class="btn btn-secondary btn-block">Add exercise</button></div>
+      <div><div class="cap" style="margin-bottom:10px;">Tertiary</div><button class="btn btn-tertiary btn-block">Cancel</button></div>
+      <div><div class="cap" style="margin-bottom:10px;">Destructive</div><button class="btn btn-destructive btn-block">Delete set</button></div>
+      <div><div class="cap" style="margin-bottom:10px;">Icon (44×44)</div><button class="iconbtn"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#E6E6E6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
+      <div><div class="cap" style="margin-bottom:10px;">FAB (Start)</div><div class="fab" style="width:56px;height:56px;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#141210" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+    </div>
+  </section>
+
+  <!-- ============ INPUTS & PAD ============ -->
+  <section id="inputs">
+    <div class="sec-label">Components</div>
+    <h2 class="sec-title">Inputs &amp; the number pad</h2>
+    <p class="sec-desc">A standard text input for names; and the custom number pad — the heart of logging. One or two taps per set: type or bump with plate chips, then “Log &amp; next set.”</p>
+    <div class="canvas grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));align-items:start;">
+      <div>
+        <div class="field-label">Routine name</div>
+        <div class="input" style="margin-bottom:14px;">Push Pull Legs</div>
+        <div class="field-label">Focused</div>
+        <div class="input focused"><span class="ph">Add a note…</span></div>
+      </div>
+      <div>
+        <div class="cap" style="margin-bottom:10px;">Number pad</div>
+        <div class="sheet" style="border-radius:16px;">
+          <div class="grabber"></div>
+          <div style="display:flex;align-items:flex-end;justify-content:center;gap:18px;margin-bottom:14px;">
+            <div style="text-align:center;"><div class="field-label" style="margin-bottom:2px;">Weight</div><div style="border-bottom:2px solid var(--accent);padding-bottom:2px;"><span class="exp tab" style="font-size:34px;">135</span><span style="font-size:13px;color:var(--text-secondary);"> lb</span></div></div>
+            <div style="font-size:20px;color:#5A5A5D;padding-bottom:8px;">×</div>
+            <div style="text-align:center;"><div class="field-label" style="margin-bottom:2px;">Reps</div><div style="border-bottom:2px solid var(--high);padding-bottom:2px;"><span class="exp tab" style="font-size:34px;">8</span></div></div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:8px;margin-bottom:12px;"><span class="chip-pill">+2.5</span><span class="chip-pill">+5</span><span class="chip-pill">+10</span><span class="chip-pill">+25</span></div>
+          <div class="keypad" style="margin-bottom:10px;">
+            <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+            <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+            <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+            <div class="key">.</div><div class="key">0</div>
+            <div class="key" style="display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#C9C9CC" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-9l-7-7z"/><path d="M14 9l-4 6M10 9l4 6"/></svg></div>
+          </div>
+          <div class="btn btn-primary btn-block" style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#141210" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg>Log &amp; next set</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SET ROW ============ -->
+  <section id="setrow">
+    <div class="sec-label">Components</div>
+    <h2 class="sec-title">Set-logging row — the heart of the app</h2>
+    <p class="sec-desc">Set · weight · reps · check. Last time shows as ghost text (the target to beat) until you enter your own. Tap row → number pad; tap a value → edit; swipe → delete.</p>
+    <div class="canvas" style="max-width:430px;">
+      <div class="cap" style="margin-bottom:4px;">Bench press</div>
+      <div class="setrow" style="border-top:none;"><span class="sl">Set 1</span><span class="wv tab">135 <span style="color:var(--text-secondary);font-weight:400;">× 8</span></span><span></span><span class="check done"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#141210" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg></span></div>
+      <div class="setrow"><span class="sl">Set 2</span><span class="wv tab">135 <span style="color:var(--text-secondary);font-weight:400;">× 8</span></span><span></span><span class="check done"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#141210" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg></span></div>
+      <div class="setrow"><span class="sl">Set 3</span><span class="wv tab ghost">95 × 12</span><span></span><span class="check todo"></span></div>
+      <div style="display:flex;gap:18px;margin-top:14px;font-size:11px;color:var(--text-tertiary);"><span>● completed (accent)</span><span>● ghost = last time, to beat</span><span>○ to-do</span></div>
+    </div>
+  </section>
+
+  <!-- ============ CARDS & LISTS ============ -->
+  <section id="cards">
+    <div class="sec-label">Components</div>
+    <h2 class="sec-title">Cards &amp; list rows</h2>
+    <p class="sec-desc">Cards rest on surface with a soft shadow; active steps to surfaceRaised; featured can take a 1px accent border. List rows are 56 tall with hairline dividers and a chevron.</p>
+    <div class="canvas grid g-auto" style="align-items:start;">
+      <div><div class="cap" style="margin-bottom:10px;">Resting</div><div class="card"><div class="cap">Up next</div><div class="t-headline" style="font-size:17px;font-weight:600;margin:4px 0 2px;">Push day</div><div style="color:var(--text-secondary);font-size:13px;">6 exercises</div></div></div>
+      <div><div class="cap" style="margin-bottom:10px;">Active / raised</div><div class="card raised"><div class="cap" style="color:var(--text-secondary)">In progress</div><div class="t-headline" style="font-size:17px;font-weight:600;margin:4px 0 2px;">Pull day</div><div style="color:var(--text-secondary);font-size:13px;">Set 4 of 18</div></div></div>
+      <div><div class="cap" style="margin-bottom:10px;">Featured (accent border)</div><div class="card featured"><div style="display:flex;justify-content:space-between;"><span class="cap">New PR</span><span class="pr-chip">PR</span></div><div class="exp tab" style="font-size:24px;margin-top:6px;">176 lb</div></div></div>
+    </div>
+    <div class="block" style="margin-top:18px;">
+      <h3>List rows</h3>
+      <div class="canvas" style="max-width:430px;">
+        <div class="listrow"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9A9A9D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M20 12h2M5 9v6M7 10.5v3M17 10.5v3M19 9v6M7 12h10"/></svg><span style="flex:1;font-size:15px;">Barbell bench press</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5A5A5D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+        <div class="listrow"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9A9A9D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5"/></svg><span style="flex:1;font-size:15px;">Incline dumbbell press</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5A5A5D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+        <div class="listrow"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9A9A9D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.2"/><path d="M12 7.2v5l-4 7M12 12.2l4 7"/></svg><span style="flex:1;font-size:15px;">Cable fly</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5A5A5D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB BAR ============ -->
+  <section id="tabbar">
+    <div class="sec-label">Components</div>
+    <h2 class="sec-title">Tab bar — center action</h2>
+    <p class="sec-desc">Subtly translucent/blurred with a top hairline. Four labeled items plus a raised center Start button. Inactive line + gray; active filled accent + accent label.</p>
+    <div class="canvas">
+      <div class="tabbar" style="border:0.5px solid var(--border-subtle);border-radius:14px;max-width:430px;margin:0 auto;background:#0E0E10;">
+        <div class="tabitem"><svg viewBox="0 0 24 24" width="22" height="22" fill="#FF6A28"><path d="M12 3l9 8h-2v9h-5v-5h-4v5H5v-9H3z"/></svg><div class="tl" style="color:var(--accent);">Home</div></div>
+        <div class="tabitem"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><div class="tl" style="color:#7A7A7D;">Routines</div></div>
+        <div class="tabitem" style="margin-top:-24px;"><div class="fab"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="#141210" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div><div class="tl" style="color:var(--accent);">Start</div></div>
+        <div class="tabitem"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="M7 15l3-4 3 2 4-6"/></svg><div class="tl" style="color:#7A7A7D;">Progress</div></div>
+        <div class="tabitem"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="3"/><path d="M6 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg><div class="tl" style="color:#7A7A7D;">Profile</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHARTS ============ -->
+  <section id="charts">
+    <div class="sec-label">Components</div>
+    <h2 class="sec-title">Charts — Apple-Stocks style</h2>
+    <p class="sec-desc">Estimated 1RM over time: thin accent line, soft gradient fill, a few faint gridlines, a scrub readout, and a violet PR point. Secondary chart: muted volume bars with the current bar in accent.</p>
+    <div class="canvas grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start;">
+      <div>
+        <div class="cap">Bench press · est. 1RM</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin:4px 0 12px;"><span class="exp tab" style="font-size:30px;">176 lb</span><span class="tab" style="font-size:13px;color:var(--accent-text);">+26 · 90d</span></div>
+        <svg viewBox="0 0 360 170" width="100%" style="height:175px;display:block;">
+          <defs><linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6A28" stop-opacity="0.30"/><stop offset="1" stop-color="#FF6A28" stop-opacity="0"/></linearGradient></defs>
+          <line x1="10" y1="20" x2="360" y2="20" stroke="#FFFFFF" stroke-opacity="0.06"/>
+          <line x1="10" y1="70" x2="360" y2="70" stroke="#FFFFFF" stroke-opacity="0.06"/>
+          <line x1="10" y1="120" x2="360" y2="120" stroke="#FFFFFF" stroke-opacity="0.06"/>
+          <text x="356" y="17" text-anchor="end" fill="#6A6A6D" font-size="9">180</text>
+          <text x="356" y="67" text-anchor="end" fill="#6A6A6D" font-size="9">165</text>
+          <text x="356" y="117" text-anchor="end" fill="#6A6A6D" font-size="9">150</text>
+          <polygon points="12,120 60,127 108,103 156,90 204,93 252,70 300,57 348,33 348,150 12,150" fill="url(#fg)"/>
+          <polyline fill="none" stroke="#FF6A28" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="12,120 60,127 108,103 156,90 204,93 252,70 300,57 348,33"/>
+          <line x1="300" y1="20" x2="300" y2="150" stroke="#FFFFFF" stroke-opacity="0.18" stroke-dasharray="3 3"/>
+          <circle cx="300" cy="57" r="4.5" fill="#fff"/><circle cx="300" cy="57" r="4.5" fill="none" stroke="#FF6A28" stroke-width="2"/>
+          <rect x="272" y="2" width="56" height="17" rx="4" fill="#26262A"/><text x="300" y="14" text-anchor="middle" fill="#E6E6E6" font-size="10">169 lb</text>
+          <circle cx="348" cy="33" r="8" fill="none" stroke="#A98BFF" stroke-opacity="0.35"/><circle cx="348" cy="33" r="4.5" fill="#A98BFF"/>
+        </svg>
+        <div class="range" style="justify-content:space-between;margin-top:8px;"><span>1M</span><span class="on">3M</span><span>6M</span><span>1Y</span><span>All</span></div>
+      </div>
+      <div>
+        <div class="cap">Total volume · weekly</div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin:4px 0 12px;"><span class="exp tab" style="font-size:30px;">14,200 lb</span></div>
+        <svg viewBox="0 0 360 170" width="100%" style="height:175px;display:block;">
+          <line x1="10" y1="40" x2="360" y2="40" stroke="#FFFFFF" stroke-opacity="0.06"/>
+          <line x1="10" y1="90" x2="360" y2="90" stroke="#FFFFFF" stroke-opacity="0.06"/>
+          <line x1="10" y1="140" x2="360" y2="140" stroke="#FFFFFF" stroke-opacity="0.06"/>
+          <rect x="24" y="96" width="34" height="54" rx="3" fill="#1E1E21"/>
+          <rect x="72" y="80" width="34" height="70" rx="3" fill="#1E1E21"/>
+          <rect x="120" y="104" width="34" height="46" rx="3" fill="#1E1E21"/>
+          <rect x="168" y="66" width="34" height="84" rx="3" fill="#1E1E21"/>
+          <rect x="216" y="54" width="34" height="96" rx="3" fill="#1E1E21"/>
+          <rect x="264" y="74" width="34" height="76" rx="3" fill="#1E1E21"/>
+          <rect x="312" y="40" width="34" height="110" rx="3" fill="#FF6A28"/>
+        </svg>
+        <div class="range" style="justify-content:space-between;margin-top:8px;"><span>1M</span><span class="on">3M</span><span>6M</span><span>1Y</span><span>All</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TOGETHER ============ -->
+  <section id="together">
+    <div class="sec-label">Put together</div>
+    <h2 class="sec-title">Sample compositions</h2>
+    <p class="sec-desc">A few of the pieces assembled, so you can see them working as a whole. These are <strong style="color:var(--text-primary);font-weight:600;">examples to react to</strong> — the actual per-page layouts are the next document.</p>
+
+    <div class="phones">
+
+      <!-- HOME -->
+      <div>
+        <div class="cap" style="margin-bottom:10px;">Home — “ready to lift”</div>
+        <div class="phone">
+          <div class="statusbar"><span class="t">9:41</span><svg width="18" height="11" viewBox="0 0 24 14" fill="none" stroke="#fff" stroke-width="1.6"><rect x="1" y="1" width="20" height="12" rx="3"/><rect x="3" y="3" width="13" height="8" rx="1.5" fill="#fff" stroke="none"/></svg></div>
+          <div style="padding:14px 16px 6px;"><div style="color:var(--text-secondary);font-size:12px;">Tuesday, Jun 3</div><div class="exp" style="font-size:26px;margin-top:2px;">Ready to lift</div></div>
+          <div style="padding:8px 14px 0;">
+            <div class="card"><div class="cap">Up next</div><div class="t-headline" style="font-size:18px;font-weight:600;margin:4px 0 2px;">Push day</div><div style="color:var(--text-secondary);font-size:13px;margin-bottom:14px;">Push Pull Legs · 6 exercises</div><div class="btn btn-primary btn-block">Start workout</div></div>
+            <div style="display:flex;align-items:center;gap:10px;background:#141417;border-radius:10px;padding:12px;margin-top:12px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#9A9A9D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5"/></svg><div style="flex:1;"><div style="color:#E6E6E6;font-size:13px;">Pull day</div><div style="color:#7A7A7D;font-size:11px;">2 days ago</div></div></div>
+          </div>
+          <div class="tabbar" style="margin-top:14px;">
+            <div class="tabitem"><svg viewBox="0 0 24 24" width="20" height="20" fill="#FF6A28"><path d="M12 3l9 8h-2v9h-5v-5h-4v5H5v-9H3z"/></svg><div class="tl" style="color:var(--accent)">Home</div></div>
+            <div class="tabitem"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><div class="tl" style="color:#7A7A7D;">Routines</div></div>
+            <div class="tabitem" style="margin-top:-24px;"><div class="fab"><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="#141210" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div><div class="tl" style="color:var(--accent)">Start</div></div>
+            <div class="tabitem"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="M7 15l3-4 3 2 4-6"/></svg><div class="tl" style="color:#7A7A7D;">Progress</div></div>
+            <div class="tabitem"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="3"/><path d="M6 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg><div class="tl" style="color:#7A7A7D;">Profile</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOGGING -->
+      <div>
+        <div class="cap" style="margin-bottom:10px;">Logging a workout</div>
+        <div class="phone">
+          <div class="statusbar"><span class="t">9:41</span><svg width="18" height="11" viewBox="0 0 24 14" fill="none" stroke="#fff" stroke-width="1.6"><rect x="1" y="1" width="20" height="12" rx="3"/><rect x="3" y="3" width="13" height="8" rx="1.5" fill="#fff" stroke="none"/></svg></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 14px;">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#E6E6E6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+            <span style="font-size:16px;font-weight:600;">Push day</span>
+            <span style="display:flex;align-items:center;gap:5px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#9A9A9D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/></svg><span class="tab" style="color:#9A9A9D;font-size:13px;">12:04</span></span>
+          </div>
+          <div style="padding:0 14px 14px;">
+            <div style="background:var(--surface);border-radius:12px;padding:15px;box-shadow:var(--elev-2);">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px;"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#E6E6E6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M20 12h2M5 9v6M7 10.5v3M17 10.5v3M19 9v6M7 12h10"/></svg><span style="font-size:16px;font-weight:600;">Bench press</span><span class="pr-chip" style="margin-left:auto;">PR</span></div>
+              <div class="cap" style="margin-bottom:6px;">Set 3 · last time 95 × 12</div>
+              <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px;"><span class="exp tab" style="font-size:38px;line-height:0.9;">100</span><span style="font-size:13px;color:#9A9A9D;">lb</span><span class="exp tab" style="font-size:38px;line-height:0.9;margin-left:10px;">12</span><span style="font-size:13px;color:#9A9A9D;">reps</span><span class="check todo" style="margin-left:auto;width:34px;height:34px;"></span></div>
+              <div class="setrow"><span class="sl">Set 1</span><span class="wv tab" style="color:#C9C9CC;">135 lb</span><span class="tab" style="color:#8A8A8D;font-size:13px;">8</span><span class="check done"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#141210" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg></span></div>
+              <div class="setrow"><span class="sl">Set 2</span><span class="wv tab" style="color:#C9C9CC;">135 lb</span><span class="tab" style="color:#8A8A8D;font-size:13px;">8</span><span class="check done"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#141210" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg></span></div>
+            </div>
+            <div class="btn btn-secondary btn-block" style="margin-top:14px;">Add exercise</div>
+            <div class="btn btn-primary btn-block" style="margin-top:10px;">Finish workout</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROGRESS -->
+      <div>
+        <div class="cap" style="margin-bottom:10px;">Progress detail</div>
+        <div class="phone">
+          <div class="statusbar"><span class="t">9:41</span><svg width="18" height="11" viewBox="0 0 24 14" fill="none" stroke="#fff" stroke-width="1.6"><rect x="1" y="1" width="20" height="12" rx="3"/><rect x="3" y="3" width="13" height="8" rx="1.5" fill="#fff" stroke="none"/></svg></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 8px;">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#E6E6E6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+            <span style="font-size:16px;font-weight:600;">Bench press</span><span style="width:22px;"></span>
+          </div>
+          <div style="padding:6px 16px 16px;">
+            <div class="cap">Est. 1RM</div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 10px;"><span class="exp tab" style="font-size:30px;">176 lb</span><span class="tab" style="font-size:13px;color:var(--accent-text);">+26 · 90d</span></div>
+            <svg viewBox="0 0 320 130" width="100%" style="height:120px;display:block;">
+              <defs><linearGradient id="fg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6A28" stop-opacity="0.30"/><stop offset="1" stop-color="#FF6A28" stop-opacity="0"/></linearGradient></defs>
+              <line x1="8" y1="18" x2="320" y2="18" stroke="#FFFFFF" stroke-opacity="0.06"/><line x1="8" y1="62" x2="320" y2="62" stroke="#FFFFFF" stroke-opacity="0.06"/><line x1="8" y1="106" x2="320" y2="106" stroke="#FFFFFF" stroke-opacity="0.06"/>
+              <polygon points="10,100 54,106 98,86 142,75 186,78 230,58 274,47 312,28 312,118 10,118" fill="url(#fg2)"/>
+              <polyline fill="none" stroke="#FF6A28" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="10,100 54,106 98,86 142,75 186,78 230,58 274,47 312,28"/>
+              <circle cx="312" cy="28" r="7" fill="none" stroke="#A98BFF" stroke-opacity="0.35"/><circle cx="312" cy="28" r="4" fill="#A98BFF"/>
+            </svg>
+            <div class="range" style="justify-content:space-between;margin:10px 0 14px;"><span>1M</span><span class="on">3M</span><span>6M</span><span>1Y</span><span>All</span></div>
+            <div style="display:flex;gap:10px;">
+              <div style="flex:1;background:var(--surface);border-radius:10px;padding:12px;"><div class="cap">Best set</div><div class="tab" style="font-size:17px;font-weight:500;margin-top:4px;">155 × 6</div></div>
+              <div style="flex:1;background:var(--surface);border-radius:10px;padding:12px;"><div class="cap">PR</div><div class="tab" style="font-size:17px;font-weight:500;margin-top:4px;color:var(--pr);">176 lb</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ AVOID ============ -->
+  <section id="avoid">
+    <div class="sec-label">Guardrail</div>
+    <h2 class="sec-title">Keep vs avoid</h2>
+    <p class="sec-desc">The whole point: never look generic or AI-generated. Left is our system; right is the cliché to steer clear of (pure black, neon, default font, bubble corners, color confetti, emoji).</p>
+    <div class="cmp">
+      <div>
+        <div class="cmp-h"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#3DDC84" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg> Keep — our system</div>
+        <div class="card">
+          <div class="cap" style="margin-bottom:10px;">Bench press</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span class="exp tab" style="font-size:22px;">135 <span style="font-size:13px;color:#8A8A8D;font-variation-settings:normal;">× 8</span></span><span class="check done"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#141210" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg></span></div>
+        </div>
+      </div>
+      <div>
+        <div class="cmp-h"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#FF5C5C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg> Avoid — generic AI look</div>
+        <div class="avoid-card">
+          <div style="font-size:13px;color:#39FF14;margin-bottom:10px;">💪 Bench Press</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;"><span style="font-size:22px;color:#fff;font-weight:700;">135 x 8</span><span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#39FF14,#00E0FF);display:flex;align-items:center;justify-content:center;color:#000;">✓</span></div>
+          <div style="display:flex;gap:6px;"><span style="font-size:10px;background:#7C3AED;color:#fff;padding:3px 9px;border-radius:999px;">Chest</span><span style="font-size:10px;background:#F59E0B;color:#fff;padding:3px 9px;border-radius:999px;">Push</span><span style="font-size:10px;background:#EC4899;color:#fff;padding:3px 9px;border-radius:999px;">PR 🔥</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Workout Tracker · Visual Design System v1 · companion to the written spec (Document 2 of 6). Examples of the kit of parts — not final page designs. Dark only · Archivo · warm orange #FF6A28.
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var c=document.getElementById('democheck');
+  var i=document.getElementById('democheckicon');
+  if(c){c.addEventListener('click',function(){
+    var on=c.getAttribute('data-on')==='true';
+    c.setAttribute('data-on',!on);
+    if(!on){c.style.background='#FF6A28';c.style.borderColor='#FF6A28';i.style.opacity='1';i.style.transform='scale(1)';}
+    else{c.style.background='transparent';c.style.borderColor='#3A3A3E';i.style.opacity='0';i.style.transform='scale(0.4)';}
+  });}
+})();
+</script>
+</body>
+</html>
