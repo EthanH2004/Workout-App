@@ -11,6 +11,7 @@ import {
 } from '@expo-google-fonts/archivo';
 import { colors } from '../src/theme/tokens';
 import { AuthProvider, useAuth } from '../src/features/auth/AuthProvider';
+import { QueryProvider } from '../src/lib/offline';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -57,9 +58,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <AuthProvider>
-        <RootNavigator />
-      </AuthProvider>
+      <QueryProvider>
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      </QueryProvider>
     </SafeAreaProvider>
   );
 }

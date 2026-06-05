@@ -8,6 +8,7 @@
     "scheme": "workouttracker",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0A0A0B",
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
