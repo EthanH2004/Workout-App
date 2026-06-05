@@ -1,1 +1,1 @@
-Building a free workout tracking Apple app for fun
+Building a workout tracking Apple app
