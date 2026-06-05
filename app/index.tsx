@@ -1,6 +1,9 @@
 import { Redirect } from 'expo-router';
+import { useAuth } from '../src/features/auth/AuthProvider';
 
-/** The app opens on the Home tab. */
+/** Entry point: route to the app or the auth flow once the session is known. */
 export default function Index() {
-  return <Redirect href="/home" />;
+  const { session, initializing } = useAuth();
+  if (initializing) return null;
+  return <Redirect href={session ? '/home' : '/welcome'} />;
 }

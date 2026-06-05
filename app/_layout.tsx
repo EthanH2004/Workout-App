@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,14 +10,36 @@ import {
   Archivo_600SemiBold,
 } from '@expo-google-fonts/archivo';
 import { colors } from '../src/theme/tokens';
+import { AuthProvider, useAuth } from '../src/features/auth/AuthProvider';
 
-// Keep the splash up until fonts are ready so the UI never flashes a fallback face.
 SplashScreen.preventAutoHideAsync();
 
+/** Redirects logged-out users to the auth flow and logged-in users into the app. */
+function RootNavigator() {
+  const { session, initializing } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (initializing) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    if (!session && !inAuthGroup) {
+      router.replace('/welcome');
+    } else if (session && inAuthGroup) {
+      router.replace('/home');
+    }
+  }, [session, initializing, segments, router]);
+
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="workout/active" options={{ presentation: 'modal' }} />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
-  // Keys here ARE the fontFamily values used in tokens.ts. Standard Archivo comes
-  // from the Google Fonts package; the Expanded display style is a separate STATIC
-  // font (assets/fonts) — never the runtime variable-width axis (see design §2.1).
   const [loaded, error] = useFonts({
     Archivo_400Regular,
     Archivo_500Medium,
@@ -27,27 +49,17 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
-    }
+    if (loaded || error) SplashScreen.hideAsync();
   }, [loaded, error]);
 
-  if (!loaded && !error) {
-    return null;
-  }
+  if (!loaded && !error) return null;
 
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.bg },
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="workout/active" options={{ presentation: 'modal' }} />
-      </Stack>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

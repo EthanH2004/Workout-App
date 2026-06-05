@@ -204,6 +204,8 @@ export const layout = {
   rowPaddingY: 12, // list / set-row vertical padding (the balanced rhythm)
   listRowHeight: 56, // 44 min
   minTapTarget: 44, // every interactive element
+  buttonHeight: 50, // primary / secondary buttons (§8.1)
+  inputHeight: 48, // text inputs (§8.2)
   tabBarHeight: 56, // + safe-area inset
   fabSize: 56, // the Start FAB circle (§8.1)
   fabRaise: 24, // FAB raised −24 into the tab bar (§8.7)
