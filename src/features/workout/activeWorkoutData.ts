@@ -62,9 +62,10 @@ export function createMockSession(): ActiveSession {
         equipment: 'barbell',
         prLive: true,
         lastTime: { dateLabel: 'Jun 1', weightKg: benchKg, reps: 8 },
+        // A fresh session starts fully unlogged: every set is a ghost target.
         sets: [
-          set(1, benchKg, 8, true),
-          set(2, benchKg, 8, true),
+          set(1, null, null, false),
+          set(2, null, null, false),
           set(3, null, null, false),
           set(4, null, null, false),
         ],

@@ -36,7 +36,8 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
-      {/* gestureEnabled: false — swipe-down would bypass the discard confirm; exit via the chevron. */}
+      {/* Native swipe-dismiss off — it can't be intercepted to confirm. The screen
+          runs its own swipe-down → "Discard workout?" confirm instead. */}
       <Stack.Screen
         name="workout/active"
         options={{ presentation: 'modal', gestureEnabled: false }}

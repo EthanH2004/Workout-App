@@ -1,5 +1,12 @@
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { CaretDown, Clock, Plus } from 'phosphor-react-native';
@@ -13,7 +20,7 @@ import {
   Text,
   type SetRowState,
 } from '../../src/components';
-import { colors, fontFamily, icon, layout, radius, spacing } from '../../src/theme/tokens';
+import { colors, fontFamily, icon, layout, motion, radius, spacing } from '../../src/theme/tokens';
 import { fromDisplayWeight, toDisplayWeight } from '../../src/utils/units';
 import {
   activeReducer,
@@ -110,16 +117,45 @@ export default function ActiveWorkoutScreen() {
     setPadTarget(null);
   }
 
-  function handleClose() {
-    if (hasLoggedSets(session)) {
-      Alert.alert('Discard workout?', 'Your logged sets will be lost.', [
-        { text: 'Keep going', style: 'cancel' },
-        { text: 'Discard', style: 'destructive', onPress: () => router.back() },
-      ]);
-    } else {
+  // Swipe-down translates the screen; release past a threshold routes through the
+  // discard confirm (so the easy gesture can't bypass it). The chevron shares it.
+  const screenY = useSharedValue(0);
+  const loggedRef = useRef(false);
+  loggedRef.current = hasLoggedSets(session);
+
+  const springBack = useCallback(() => {
+    screenY.value = withSpring(0, motion.spring);
+  }, [screenY]);
+
+  const attemptDismiss = useCallback(() => {
+    if (!loggedRef.current) {
       router.back();
+      return;
     }
-  }
+    Alert.alert('Discard workout?', 'Your logged sets will be lost.', [
+      { text: 'Keep going', style: 'cancel', onPress: springBack },
+      { text: 'Discard', style: 'destructive', onPress: () => router.back() },
+    ]);
+  }, [router, springBack]);
+
+  const dragToDismiss = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetY(10)
+        .onUpdate((e) => {
+          screenY.value = Math.max(0, e.translationY);
+        })
+        .onEnd((e) => {
+          if (e.translationY > 120 || e.velocityY > 800) {
+            runOnJS(attemptDismiss)();
+          } else {
+            screenY.value = withSpring(0, motion.spring);
+          }
+        }),
+    [screenY, attemptDismiss],
+  );
+
+  const screenStyle = useAnimatedStyle(() => ({ transform: [{ translateY: screenY.value }] }));
 
   function handleToggleComplete(exerciseId: string, set: ActiveSet) {
     if (!set.completed) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid);
@@ -131,35 +167,38 @@ export default function ActiveWorkoutScreen() {
   const handleFinish = () => router.back();
 
   const header = (
-    <View style={styles.nav}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Close workout"
-        onPress={handleClose}
-        style={styles.navIcon}
-      >
-        <CaretDown size={icon.size.standard} color={colors.textPrimary} weight="bold" />
-      </Pressable>
-      <View style={styles.navCenter}>
-        <Text variant="headline">{session.dayName}</Text>
-        {session.groupName ? (
-          <Text variant="overline" color="textTertiary" style={styles.navSub}>
-            {session.groupName}
+    <GestureDetector gesture={dragToDismiss}>
+      <View style={styles.nav}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close workout"
+          onPress={attemptDismiss}
+          style={styles.navIcon}
+        >
+          <CaretDown size={icon.size.standard} color={colors.textPrimary} weight="bold" />
+        </Pressable>
+        <View style={styles.navCenter}>
+          <Text variant="headline">{session.dayName}</Text>
+          {session.groupName ? (
+            <Text variant="overline" color="textTertiary" style={styles.navSub}>
+              {session.groupName}
+            </Text>
+          ) : null}
+        </View>
+        <View style={styles.timer}>
+          <Clock size={15} color={colors.accentText} weight="bold" />
+          <Text variant="caption" color="accentText" style={styles.timerValue}>
+            {timer}
           </Text>
-        ) : null}
+        </View>
       </View>
-      <View style={styles.timer}>
-        <Clock size={15} color={colors.accentText} weight="bold" />
-        <Text variant="caption" color="accentText" style={styles.timerValue}>
-          {timer}
-        </Text>
-      </View>
-    </View>
+    </GestureDetector>
   );
 
   return (
     <View style={styles.root}>
-      <ScreenScaffold header={header}>
+      <Animated.View style={[styles.flex, screenStyle]}>
+        <ScreenScaffold header={header}>
         {FORCE_VARIANT === 'loading' ? (
           <LoadingCards />
         ) : isEmpty ? (
@@ -170,7 +209,6 @@ export default function ActiveWorkoutScreen() {
               <ExerciseCard
                 key={exercise.id}
                 exercise={exercise}
-                raised={index === 0}
                 first={index === 0}
                 activeSetId={highlightedSetId}
                 onPressSet={(set) => openPad(exercise, set)}
@@ -196,7 +234,8 @@ export default function ActiveWorkoutScreen() {
             <Button label="Finish workout" onPress={handleFinish} style={styles.finish} />
           </>
         )}
-      </ScreenScaffold>
+        </ScreenScaffold>
+      </Animated.View>
 
       {padTarget ? (
         <NumberPadSheet
@@ -216,7 +255,6 @@ export default function ActiveWorkoutScreen() {
 
 function ExerciseCard({
   exercise,
-  raised,
   first,
   activeSetId,
   onPressSet,
@@ -224,15 +262,16 @@ function ExerciseCard({
   onAddSet,
 }: {
   exercise: ActiveExercise;
-  raised: boolean;
   first: boolean;
   activeSetId: string | null;
   onPressSet: (set: ActiveSet) => void;
   onToggleComplete: (set: ActiveSet) => void;
   onAddSet: () => void;
 }) {
+  // One surface treatment for every card — no privileged "active" exercise (the
+  // highlighted set row shows where the user is). §8.5
   return (
-    <Card variant={raised ? 'raised' : 'surface'} style={first ? undefined : styles.cardGap}>
+    <Card style={first ? undefined : styles.cardGap}>
       <View style={styles.exHead}>
         <EquipmentIcon equipment={exercise.equipment} size={21} />
         <Text variant="headline" style={styles.exName} numberOfLines={1}>
@@ -328,6 +367,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  flex: {
+    flex: 1,
   },
   nav: {
     flexDirection: 'row',
