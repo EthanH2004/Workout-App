@@ -1,5 +1,330 @@
-import { PlaceholderScreen } from '../../src/components/PlaceholderScreen';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { CaretRight, Play } from 'phosphor-react-native';
+import {
+  Button,
+  Card,
+  EquipmentIcon,
+  ScreenScaffold,
+  SectionLabel,
+  StatCard,
+  Text,
+} from '../../src/components';
+import { colors, icon, layout, radius, spacing } from '../../src/theme/tokens';
+import { kgToLb } from '../../src/utils/units';
+import { formatLongDate, formatShortDate, groupThousands } from '../../src/utils/format';
+import {
+  useHomeData,
+  type HomeData,
+  type HomeRecentSession,
+  type HomeUpNext,
+} from '../../src/features/home/homeData';
 
+// Display unit is the app default until the Settings units toggle / profile is wired.
+const UNIT = 'lb';
+
+/** Home tab (§2.1): the landing after launch, one tap into today's session. */
 export default function HomeScreen() {
-  return <PlaceholderScreen title="Home" />;
+  const { state, refetch } = useHomeData();
+  const today = new Date();
+
+  return (
+    <ScreenScaffold>
+      <View style={styles.header}>
+        <Text variant="caption" color="textSecondary">
+          {formatLongDate(today)}
+        </Text>
+        <Text variant="titleXL" style={styles.hero}>
+          Ready to lift
+        </Text>
+      </View>
+
+      {state.status === 'loading' ? <HomeSkeleton /> : null}
+
+      {state.status === 'empty' ? (
+        <QuickStartCard
+          title="Start your first workout"
+          subtitle="Pick a routine or jump straight in."
+          pickLabel="Browse routines"
+        />
+      ) : null}
+
+      {state.status === 'error' ? (
+        <>
+          <ErrorBanner onRetry={refetch} />
+          {state.cached ? <HomeContent data={state.cached} /> : null}
+        </>
+      ) : null}
+
+      {state.status === 'ready' ? <HomeContent data={state.data} /> : null}
+    </ScreenScaffold>
+  );
 }
+
+/* ------------------------------ populated body ----------------------------- */
+
+function HomeContent({ data }: { data: HomeData }) {
+  return (
+    <>
+      {data.upNext ? (
+        <UpNextCard upNext={data.upNext} />
+      ) : (
+        <QuickStartCard
+          title="Start an empty workout"
+          subtitle="You don't have a routine yet."
+          pickLabel="Pick a routine"
+        />
+      )}
+
+      <View style={styles.statStrip}>
+        <StatCard label="Workouts · 7d" value={data.last7.workouts} style={styles.statItem} />
+        <StatCard
+          label="Volume · 7d"
+          value={groupThousands(kgToLb(data.last7.volumeKg))}
+          unit={UNIT}
+          style={styles.statItem}
+        />
+      </View>
+
+      {data.recent.length > 0 ? <RecentList sessions={data.recent} /> : null}
+    </>
+  );
+}
+
+function UpNextCard({ upNext }: { upNext: HomeUpNext }) {
+  const router = useRouter();
+  const more =
+    upNext.moreNames.length > 0
+      ? `+${upNext.moreNames.length} more · ${upNext.moreNames
+          .map((n) => n.toLowerCase())
+          .join(', ')}`
+      : null;
+
+  return (
+    <Card style={styles.upNext}>
+      <SectionLabel>Up next</SectionLabel>
+      <Text variant="title" style={styles.upNextTitle}>
+        {upNext.routineDayName}
+      </Text>
+      <Text variant="caption" color="textSecondary" style={styles.upNextMeta}>
+        {`${upNext.groupName} · ${upNext.exerciseCount} exercises · ${upNext.totalSets} sets`}
+      </Text>
+
+      <View style={styles.exList}>
+        {upNext.preview.map((ex) => (
+          <View key={ex.name} style={styles.exRow}>
+            <EquipmentIcon equipment={ex.equipment} size={21} />
+            <Text variant="bodyStrong" style={styles.exName} numberOfLines={1}>
+              {ex.name}
+            </Text>
+            <Text variant="caption" color="textSecondary">
+              {`${ex.targetSets} sets`}
+            </Text>
+          </View>
+        ))}
+        {more ? (
+          <Text variant="caption" color="textTertiary" style={styles.more} numberOfLines={1}>
+            {more}
+          </Text>
+        ) : null}
+      </View>
+
+      <Button
+        label="Start workout"
+        onPress={() => router.push('/workout/active')}
+        icon={<Play size={18} color={colors.textOnAccent} weight="fill" />}
+        style={styles.startButton}
+      />
+    </Card>
+  );
+}
+
+/** Quick-start prompt — covers both the empty (new user) and no-routine variants. */
+function QuickStartCard({
+  title,
+  subtitle,
+  pickLabel,
+}: {
+  title: string;
+  subtitle: string;
+  pickLabel: string;
+}) {
+  const router = useRouter();
+  return (
+    <Card style={styles.upNext}>
+      <SectionLabel>Up next</SectionLabel>
+      <Text variant="title" style={styles.upNextTitle}>
+        {title}
+      </Text>
+      <Text variant="caption" color="textSecondary" style={styles.upNextMeta}>
+        {subtitle}
+      </Text>
+      <Button
+        label="Start workout"
+        onPress={() => router.push('/workout/active')}
+        icon={<Play size={18} color={colors.textOnAccent} weight="fill" />}
+        style={styles.startButton}
+      />
+      <Button label={pickLabel} variant="tertiary" onPress={() => router.push('/routines')} />
+    </Card>
+  );
+}
+
+function RecentList({ sessions }: { sessions: HomeRecentSession[] }) {
+  return (
+    <View style={styles.section}>
+      <SectionLabel style={styles.sectionLabel}>Recent</SectionLabel>
+      {sessions.map((session, i) => (
+        <RecentRow key={session.id} session={session} first={i === 0} />
+      ))}
+    </View>
+  );
+}
+
+function RecentRow({ session, first }: { session: HomeRecentSession; first: boolean }) {
+  // The read-only session summary route isn't built yet; row is press-ready for it.
+  const sub = `${formatShortDate(new Date(session.startedAt))}  ·  ${session.setsCount} sets  ·  ${groupThousands(
+    kgToLb(session.volumeKg),
+  )} ${UNIT}`;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.recentRow,
+        !first && styles.recentRowDivider,
+        pressed && styles.recentRowPressed,
+      ]}
+    >
+      <EquipmentIcon equipment={session.equipment} size={22} />
+      <View style={styles.recentInfo}>
+        <Text variant="bodyStrong">{session.name}</Text>
+        <Text variant="caption" color="textSecondary" style={styles.recentSub}>
+          {sub}
+        </Text>
+      </View>
+      <CaretRight size={16} color={colors.textTertiary} weight="bold" />
+    </Pressable>
+  );
+}
+
+/* -------------------------------- non-happy -------------------------------- */
+
+function HomeSkeleton() {
+  return (
+    <>
+      <View style={[styles.skeleton, styles.upNext, { height: 232 }]} />
+      <View style={styles.statStrip}>
+        <View style={[styles.skeleton, styles.statItem, { height: 72 }]} />
+        <View style={[styles.skeleton, styles.statItem, { height: 72 }]} />
+      </View>
+    </>
+  );
+}
+
+function ErrorBanner({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={styles.banner}>
+      <Text variant="caption" color="textSecondary" style={styles.bannerText}>
+        Couldn't refresh
+      </Text>
+      <Pressable accessibilityRole="button" onPress={onRetry} hitSlop={spacing[2]}>
+        <Text variant="caption" color="accentText">
+          Retry
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    paddingTop: spacing[2],
+    paddingBottom: spacing[1],
+  },
+  hero: {
+    marginTop: spacing[1],
+  },
+  upNext: {
+    marginTop: spacing[3],
+  },
+  upNextTitle: {
+    marginTop: spacing[1],
+  },
+  upNextMeta: {
+    marginTop: spacing[1],
+  },
+  exList: {
+    marginTop: spacing[3],
+  },
+  exRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    paddingVertical: spacing[2] + 2,
+    borderTopWidth: layout.borderHairline,
+    borderTopColor: colors.borderSubtle,
+  },
+  exName: {
+    flex: 1,
+  },
+  more: {
+    paddingTop: spacing[3],
+    borderTopWidth: layout.borderHairline,
+    borderTopColor: colors.borderSubtle,
+  },
+  startButton: {
+    marginTop: spacing[4],
+  },
+  statStrip: {
+    flexDirection: 'row',
+    gap: spacing[3],
+    marginTop: spacing[4],
+  },
+  statItem: {
+    flex: 1,
+  },
+  section: {
+    marginTop: spacing[6],
+  },
+  sectionLabel: {
+    marginBottom: spacing[2],
+  },
+  recentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[1],
+    borderRadius: radius.sm,
+  },
+  recentRowDivider: {
+    borderTopWidth: layout.borderHairline,
+    borderTopColor: colors.borderSubtle,
+  },
+  recentRowPressed: {
+    backgroundColor: colors.surfaceRaised,
+  },
+  recentInfo: {
+    flex: 1,
+  },
+  recentSub: {
+    marginTop: spacing[1] / 2,
+  },
+  skeleton: {
+    backgroundColor: colors.surfaceRaised,
+    borderRadius: radius.md,
+  },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    marginTop: spacing[3],
+  },
+  bannerText: {
+    flex: 1,
+  },
+});

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -16,6 +17,8 @@ interface ButtonProps {
   variant?: Variant;
   disabled?: boolean;
   loading?: boolean;
+  /** Optional leading glyph (e.g. a Play icon). Caller sets its color per variant. */
+  icon?: ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -47,6 +50,7 @@ export function Button({
   variant = 'primary',
   disabled = false,
   loading = false,
+  icon,
   style,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -69,9 +73,12 @@ export function Button({
           color={variant === 'primary' ? colors.textOnAccent : colors.textPrimary}
         />
       ) : (
-        <Text variant="bodyStrong" color={LABEL_COLOR[variant]}>
-          {label}
-        </Text>
+        <>
+          {icon}
+          <Text variant="bodyStrong" color={LABEL_COLOR[variant]}>
+            {label}
+          </Text>
+        </>
       )}
     </Pressable>
   );
@@ -85,6 +92,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing[2],
   },
   disabled: {
     opacity: 0.5,
