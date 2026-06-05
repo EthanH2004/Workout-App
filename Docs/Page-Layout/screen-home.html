@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Tracker — Home</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo:wdth,wght@62..125,100..900&display=swap');
+:root{
+  --bg:#0A0A0B; --surface:#141416; --raised:#1E1E21; --overlay:#26262A; --high:#2E2E33;
+  --border-subtle:rgba(255,255,255,0.07); --border-default:rgba(255,255,255,0.10); --border-strong:rgba(255,255,255,0.16);
+  --text-primary:#FFFFFF; --text-secondary:#9A9A9D; --text-tertiary:#6A6A6D; --text-disabled:#4A4A4D;
+  --accent:#FF6A28; --accent-pressed:#E0561C; --accent-text:#FF8A4D; --accent-subtle:rgba(255,106,40,0.14); --accent-border:rgba(255,106,40,0.40);
+  --success:#3DDC84; --destructive:#FF5C5C; --pr:#A98BFF; --pr-subtle:rgba(169,139,255,0.15); --warning:#E8A33A;
+  --text-on-accent:#141210; --ghost:#838388;
+  --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px;
+  --elev-1:0 6px 20px rgba(0,0,0,0.45);
+  --elev-2:0 8px 24px rgba(0,0,0,0.50);
+  --font:'Archivo',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased;}
+body{background:#060607;font-family:var(--font);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 0;}
+.exp{font-variation-settings:'wdth' 118,'wght' 800;}
+.tab{font-variant-numeric:tabular-nums;}
+.cap{font-size:11px;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-secondary);}
+
+/* phone frame */
+.phone{position:relative;width:390px;height:844px;background:var(--bg);border-radius:48px;
+  border:0.5px solid var(--border-subtle);overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,0.65);color:var(--text-primary);}
+.screen{display:flex;flex-direction:column;height:100%;}
+.content{flex:1;overflow-y:auto;padding:0 16px 12px;}
+.content::-webkit-scrollbar{display:none;}
+
+/* status bar */
+.statusbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;flex-shrink:0;}
+.statusbar .t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:0.02em;}
+.statusbar .ind{display:flex;align-items:center;gap:6px;}
+
+/* header */
+.head{padding:8px 0 6px;}
+.head .date{color:var(--text-secondary);font-size:13px;}
+.head .hero{font-size:28px;letter-spacing:0.01em;margin-top:3px;line-height:1.05;}
+
+/* cards */
+.card{background:var(--surface);border-radius:var(--r-md);padding:16px;box-shadow:var(--elev-1);}
+
+/* up next */
+.upnext .meta{color:var(--text-secondary);font-size:13px;margin-top:3px;}
+.upnext .title{font-size:20px;font-weight:600;margin-top:5px;line-height:1.15;}
+.exlist{margin-top:14px;}
+.exrow{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:0.5px solid var(--border-subtle);}
+.exrow .nm{flex:1;font-size:15px;font-weight:500;color:#EDEDED;}
+.exrow .sets{font-size:13px;color:var(--text-secondary);font-variant-numeric:tabular-nums;}
+.more{font-size:12px;color:var(--text-tertiary);padding:11px 0 2px;border-top:0.5px solid var(--border-subtle);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.eq{color:var(--text-secondary);flex-shrink:0;}
+
+/* primary button */
+.btn{font-family:var(--font);font-size:15px;font-weight:600;border:none;border-radius:var(--r-sm);
+  height:50px;width:100%;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;
+  transition:transform 130ms cubic-bezier(.2,0,0,1),filter 130ms;}
+.btn:active{transform:scale(0.97);filter:brightness(0.92);}
+.btn-primary{background:var(--accent);color:var(--text-on-accent);margin-top:16px;}
+
+/* stat strip */
+.stats{display:flex;gap:12px;margin-top:16px;}
+.stat{flex:1;background:var(--surface);border-radius:var(--r-md);padding:13px 14px;box-shadow:var(--elev-1);}
+.stat .v{font-size:21px;margin-top:6px;line-height:1;}
+.stat .u{font-size:12px;color:var(--text-secondary);font-variation-settings:normal;font-weight:400;margin-left:2px;}
+
+/* section */
+.section{margin-top:26px;}
+.section .lbl{margin-bottom:8px;}
+
+/* recent list rows */
+.listrow{display:flex;align-items:center;gap:13px;padding:13px 4px;border-top:0.5px solid var(--border-subtle);}
+.listrow:first-of-type{border-top:none;}
+.listrow .info{flex:1;}
+.listrow .nm{font-size:15px;font-weight:500;color:#EDEDED;}
+.listrow .sub{font-size:12px;color:var(--text-secondary);margin-top:2px;}
+.listrow .sub .dot{color:var(--text-tertiary);margin:0 5px;}
+.chev{color:#5A5A5D;flex-shrink:0;}
+
+/* tab bar */
+.tabbar{display:flex;justify-content:space-around;align-items:flex-start;height:84px;padding:11px 8px 0;
+  border-top:0.5px solid var(--border-subtle);background:rgba(10,10,11,0.85);backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);flex-shrink:0;overflow:visible;}
+.tabitem{text-align:center;width:62px;}
+.tabitem .tl{font-size:10px;margin-top:4px;}
+.fab{width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;
+  margin:0 auto;box-shadow:0 8px 22px rgba(255,106,40,0.42);}
+.home-ind{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,0.22);}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="screen">
+
+    <!-- STATUS BAR -->
+    <div class="statusbar">
+      <span class="t">9:41</span>
+      <span class="ind">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4.5" width="3" height="7.5" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"><path d="M1 4.2C3.2 2.3 5.7 1.3 8.5 1.3s5.3 1 7.5 2.9"/><path d="M3.4 6.9C4.8 5.7 6.6 5 8.5 5s3.7.7 5.1 1.9"/><path d="M5.9 9.6c.7-.6 1.6-1 2.6-1s1.9.4 2.6 1"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="#fff" stroke-opacity="0.45"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="#fff"/><rect x="23" y="4" width="1.6" height="4" rx="0.8" fill="#fff" fill-opacity="0.45"/></svg>
+      </span>
+    </div>
+
+    <div class="content">
+
+      <!-- HEADER -->
+      <div class="head">
+        <div class="date">Thursday, Jun 4</div>
+        <div class="exp hero">Ready to lift</div>
+      </div>
+
+      <!-- UP NEXT -->
+      <div class="card upnext" style="margin-top:14px;">
+        <div class="cap">Up next</div>
+        <div class="title">Push day</div>
+        <div class="meta">Push Pull Legs · 6 exercises · 19 sets</div>
+
+        <div class="exlist">
+          <div class="exrow">
+            <svg class="eq" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M20 12h2M5 9v6M7 10.5v3M17 10.5v3M19 9v6M7 12h10"/></svg>
+            <span class="nm">Barbell bench press</span>
+            <span class="sets tab">4 sets</span>
+          </div>
+          <div class="exrow">
+            <svg class="eq" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5"/></svg>
+            <span class="nm">Incline dumbbell press</span>
+            <span class="sets tab">3 sets</span>
+          </div>
+          <div class="exrow">
+            <svg class="eq" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5"/></svg>
+            <span class="nm">Seated shoulder press</span>
+            <span class="sets tab">3 sets</span>
+          </div>
+          <div class="more">+3 more · cable fly, triceps pushdown, lateral raise</div>
+        </div>
+
+        <button class="btn btn-primary">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="var(--text-on-accent)"><path d="M8 5v14l11-7z"/></svg>
+          Start workout
+        </button>
+      </div>
+
+      <!-- LAST 7 DAYS -->
+      <div class="stats">
+        <div class="stat">
+          <div class="cap">Workouts · 7d</div>
+          <div class="exp tab v">3</div>
+        </div>
+        <div class="stat">
+          <div class="cap">Volume · 7d</div>
+          <div class="exp tab v">22,400<span class="u">lb</span></div>
+        </div>
+      </div>
+
+      <!-- RECENT -->
+      <div class="section">
+        <div class="cap lbl">Recent</div>
+        <div class="listrow">
+          <svg class="eq" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5"/></svg>
+          <div class="info">
+            <div class="nm">Leg day</div>
+            <div class="sub tab">Tue, Jun 2 <span class="dot">·</span> 20 sets <span class="dot">·</span> 26,800 lb</div>
+          </div>
+          <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+        <div class="listrow">
+          <svg class="eq" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M20 12h2M5 9v6M7 10.5v3M17 10.5v3M19 9v6M7 12h10"/></svg>
+          <div class="info">
+            <div class="nm">Pull day</div>
+            <div class="sub tab">Sun, May 31 <span class="dot">·</span> 18 sets <span class="dot">·</span> 24,100 lb</div>
+          </div>
+          <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB BAR -->
+    <div class="tabbar">
+      <div class="tabitem">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="var(--accent)"><path d="M12 3l9 8h-2v9h-5v-5h-4v5H5v-9H3z"/></svg>
+        <div class="tl" style="color:var(--accent);">Home</div>
+      </div>
+      <div class="tabitem">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        <div class="tl" style="color:#7A7A7D;">Routines</div>
+      </div>
+      <div class="tabitem" style="margin-top:-22px;">
+        <div class="fab"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--text-on-accent)" stroke-width="2.3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+        <div class="tl" style="color:var(--accent);margin-top:5px;">Start</div>
+      </div>
+      <div class="tabitem">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="M7 15l3-4 3 2 4-6"/></svg>
+        <div class="tl" style="color:#7A7A7D;">Progress</div>
+      </div>
+      <div class="tabitem">
+        <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="#7A7A7D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="3"/><path d="M6 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/></svg>
+        <div class="tl" style="color:#7A7A7D;">Profile</div>
+      </div>
+    </div>
+
+    <div class="home-ind"></div>
+  </div>
+</div>
+</body>
+</html>

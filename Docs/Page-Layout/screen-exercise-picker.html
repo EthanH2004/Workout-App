@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Tracker — Exercise Picker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo:wdth,wght@62..125,100..900&display=swap');
+:root{
+  --bg:#0A0A0B; --surface:#141416; --raised:#1E1E21; --high:#2E2E33;
+  --border-subtle:rgba(255,255,255,0.07); --border-default:rgba(255,255,255,0.10);
+  --text-primary:#FFFFFF; --text-secondary:#9A9A9D; --text-tertiary:#6A6A6D;
+  --accent:#FF6A28; --accent-text:#FF8A4D; --accent-subtle:rgba(255,106,40,0.14);
+  --text-on-accent:#141210;
+  --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px;
+  --font:'Archivo',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased;}
+body{background:#060607;font-family:var(--font);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 0;}
+.tab{font-variant-numeric:tabular-nums;}
+.cap{font-size:11px;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-tertiary);}
+.phone{position:relative;width:390px;height:844px;background:var(--bg);border-radius:48px;border:0.5px solid var(--border-subtle);overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,0.65);color:var(--text-primary);}
+.screen{display:flex;flex-direction:column;height:100%;}
+.statusbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;flex-shrink:0;}
+.statusbar .t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;}
+.statusbar .ind{display:flex;align-items:center;gap:6px;}
+
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 10px;flex-shrink:0;}
+.navbar .ttl{font-size:16px;font-weight:600;}
+.navbar .lft{color:var(--text-secondary);font-size:15px;cursor:pointer;}
+.navbar .rgt{color:var(--accent-text);font-size:15px;font-weight:600;cursor:pointer;}
+
+.searchwrap{padding:0 16px 10px;flex-shrink:0;}
+.search{height:44px;background:var(--raised);border-radius:var(--r-sm);display:flex;align-items:center;gap:9px;padding:0 13px;color:var(--text-tertiary);font-size:16px;}
+.chips{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto;flex-shrink:0;}
+.chips::-webkit-scrollbar{display:none;}
+.fchip{font-size:13px;color:var(--text-secondary);background:var(--raised);border-radius:999px;padding:7px 14px;white-space:nowrap;cursor:pointer;}
+.fchip.on{background:var(--accent);color:var(--text-on-accent);font-weight:500;}
+
+.list{flex:1;overflow-y:auto;padding:0 16px 16px;}
+.list::-webkit-scrollbar{display:none;}
+.grouplabel{font-size:11px;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-tertiary);margin:16px 4px 4px;}
+.exrow{display:flex;align-items:center;gap:13px;padding:13px 4px;border-top:0.5px solid var(--border-subtle);cursor:pointer;}
+.exrow .info{flex:1;}
+.exrow .nm{font-size:15px;font-weight:500;color:#EDEDED;}
+.exrow .sub{font-size:12px;color:var(--text-secondary);margin-top:2px;}
+.eq{color:var(--text-secondary);flex-shrink:0;}
+.sel{width:24px;height:24px;border-radius:50%;border:1.5px solid #3A3A3E;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sel.on{background:var(--accent);border-color:var(--accent);}
+
+.createrow{display:flex;align-items:center;gap:13px;padding:15px 4px;margin-top:8px;border-top:0.5px solid var(--border-subtle);color:var(--accent-text);font-weight:500;font-size:15px;cursor:pointer;}
+
+.footer{padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:0.5px solid var(--border-subtle);background:var(--bg);flex-shrink:0;}
+.btn-add{background:var(--accent);color:var(--text-on-accent);height:50px;border-radius:var(--r-sm);font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.home-ind{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,0.22);}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="screen">
+
+    <div class="statusbar">
+      <span class="t">9:41</span>
+      <span class="ind">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4.5" width="3" height="7.5" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"><path d="M1 4.2C3.2 2.3 5.7 1.3 8.5 1.3s5.3 1 7.5 2.9"/><path d="M3.4 6.9C4.8 5.7 6.6 5 8.5 5s3.7.7 5.1 1.9"/><path d="M5.9 9.6c.7-.6 1.6-1 2.6-1s1.9.4 2.6 1"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="#fff" stroke-opacity="0.45"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="#fff"/><rect x="23" y="4" width="1.6" height="4" rx="0.8" fill="#fff" fill-opacity="0.45"/></svg>
+      </span>
+    </div>
+
+    <div class="navbar">
+      <span class="lft">Cancel</span>
+      <span class="ttl">Add exercise</span>
+      <span class="rgt">Done · 2</span>
+    </div>
+
+    <div class="searchwrap">
+      <div class="search">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#6A6A6D" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        Search exercises
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="fchip on">All</span>
+      <span class="fchip">Chest</span>
+      <span class="fchip">Back</span>
+      <span class="fchip">Legs</span>
+      <span class="fchip">Shoulders</span>
+      <span class="fchip">Arms</span>
+      <span class="fchip">Core</span>
+    </div>
+
+    <div class="list">
+
+      <div class="grouplabel">Chest</div>
+      <div class="exrow">
+        <svg class="eq" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M20 12h2M5 9v6M7 10.5v3M17 10.5v3M19 9v6M7 12h10"/></svg>
+        <div class="info"><div class="nm">Barbell bench press</div><div class="sub">Chest · Barbell</div></div>
+        <span class="sel on"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#141210" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg></span>
+      </div>
+      <div class="exrow">
+        <svg class="eq" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h2M20 12h2M5 9v6M7 10.5v3M17 10.5v3M19 9v6M7 12h10"/></svg>
+        <div class="info"><div class="nm">Incline barbell bench press</div><div class="sub">Chest · Barbell</div></div>
+        <span class="sel"></span>
+      </div>
+      <div class="exrow">
+        <svg class="eq" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5"/></svg>
+        <div class="info"><div class="nm">Incline dumbbell press</div><div class="sub">Chest · Dumbbell</div></div>
+        <span class="sel on"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#141210" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L19 7"/></svg></span>
+      </div>
+      <div class="exrow">
+        <svg class="eq" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.2"/><path d="M12 7.2v5l-4 7M12 12.2l4 7"/></svg>
+        <div class="info"><div class="nm">Cable fly</div><div class="sub">Chest · Cable</div></div>
+        <span class="sel"></span>
+      </div>
+      <div class="exrow">
+        <svg class="eq" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 14h7v6M14 4v6h6"/></svg>
+        <div class="info"><div class="nm">Machine chest press</div><div class="sub">Chest · Machine</div></div>
+        <span class="sel"></span>
+      </div>
+
+      <div class="grouplabel">Shoulders</div>
+      <div class="exrow">
+        <svg class="eq" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5"/></svg>
+        <div class="info"><div class="nm">Seated dumbbell shoulder press</div><div class="sub">Shoulders · Dumbbell</div></div>
+        <span class="sel"></span>
+      </div>
+      <div class="exrow">
+        <svg class="eq" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5"/></svg>
+        <div class="info"><div class="nm">Dumbbell lateral raise</div><div class="sub">Shoulders · Dumbbell</div></div>
+        <span class="sel"></span>
+      </div>
+
+      <div class="createrow">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Create custom exercise
+      </div>
+
+    </div>
+
+    <div class="footer">
+      <div class="btn-add">Add 2 exercises</div>
+    </div>
+    <div class="home-ind"></div>
+  </div>
+</div>
+</body>
+</html>

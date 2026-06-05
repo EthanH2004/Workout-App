@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Tracker — Settings</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo:wdth,wght@62..125,100..900&display=swap');
+:root{
+  --bg:#0A0A0B; --surface:#141416; --raised:#1E1E21; --high:#2E2E33;
+  --border-subtle:rgba(255,255,255,0.07); --border-default:rgba(255,255,255,0.10);
+  --text-primary:#FFFFFF; --text-secondary:#9A9A9D; --text-tertiary:#6A6A6D;
+  --accent:#FF6A28; --accent-text:#FF8A4D; --accent-subtle:rgba(255,106,40,0.14);
+  --success:#3DDC84; --destructive:#FF5C5C; --text-on-accent:#141210;
+  --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px;
+  --elev-1:0 6px 20px rgba(0,0,0,0.45);
+  --font:'Archivo',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased;}
+body{background:#060607;font-family:var(--font);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 0;}
+.tab{font-variant-numeric:tabular-nums;}
+.cap{font-size:11px;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-secondary);}
+.phone{position:relative;width:390px;height:844px;background:var(--bg);border-radius:48px;border:0.5px solid var(--border-subtle);overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,0.65);color:var(--text-primary);}
+.screen{display:flex;flex-direction:column;height:100%;}
+.content{flex:1;overflow-y:auto;padding:0 16px 20px;}
+.content::-webkit-scrollbar{display:none;}
+.statusbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 7px;flex-shrink:0;}
+.statusbar .t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;}
+.statusbar .ind{display:flex;align-items:center;gap:6px;}
+
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:2px 6px 10px;flex-shrink:0;}
+.navbar .ttl{font-size:16px;font-weight:600;}
+.iconbtn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:#E6E6E6;background:none;border:none;cursor:pointer;}
+
+.seclabel{margin:18px 4px 9px;}
+.group{background:var(--surface);border-radius:var(--r-md);box-shadow:var(--elev-1);overflow:hidden;}
+.row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:0.5px solid var(--border-subtle);}
+.row:first-child{border-top:none;}
+.row .lab{flex:1;font-size:15px;color:#EDEDED;}
+.row .val{font-size:14px;color:var(--text-secondary);}
+.chev{color:#5A5A5D;flex-shrink:0;}
+
+/* segmented (units) */
+.seg{display:flex;background:var(--raised);border-radius:var(--r-sm);padding:3px;width:150px;}
+.seg span{flex:1;text-align:center;font-size:13px;font-weight:500;color:var(--text-secondary);padding:7px 0;border-radius:6px;cursor:pointer;font-variant-numeric:tabular-nums;}
+.seg span.on{background:var(--accent);color:var(--text-on-accent);}
+
+/* toggle */
+.tog{width:46px;height:28px;border-radius:999px;background:var(--accent);position:relative;flex-shrink:0;}
+.tog .knob{position:absolute;top:3px;left:21px;width:22px;height:22px;border-radius:50%;background:#fff;}
+.tog.off{background:var(--high);}
+.tog.off .knob{left:3px;}
+
+.synced{display:flex;align-items:center;gap:6px;color:var(--text-secondary);font-size:13px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--success);}
+
+.danger{text-align:center;color:var(--destructive);font-size:15px;font-weight:500;padding:20px 0 6px;cursor:pointer;}
+.version{text-align:center;color:var(--text-tertiary);font-size:12px;padding-top:6px;}
+.home-ind{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,0.22);}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="screen">
+
+    <div class="statusbar">
+      <span class="t">9:41</span>
+      <span class="ind">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4.5" width="3" height="7.5" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"><path d="M1 4.2C3.2 2.3 5.7 1.3 8.5 1.3s5.3 1 7.5 2.9"/><path d="M3.4 6.9C4.8 5.7 6.6 5 8.5 5s3.7.7 5.1 1.9"/><path d="M5.9 9.6c.7-.6 1.6-1 2.6-1s1.9.4 2.6 1"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="#fff" stroke-opacity="0.45"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="#fff"/><rect x="23" y="4" width="1.6" height="4" rx="0.8" fill="#fff" fill-opacity="0.45"/></svg>
+      </span>
+    </div>
+
+    <div class="navbar">
+      <button class="iconbtn"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#E6E6E6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="ttl">Settings</span>
+      <span style="width:38px;"></span>
+    </div>
+
+    <div class="content">
+
+      <!-- PREFERENCES -->
+      <div class="cap seclabel">Preferences</div>
+      <div class="group">
+        <div class="row">
+          <span class="lab">Units</span>
+          <div class="seg"><span class="on">lb</span><span>kg</span></div>
+        </div>
+        <div class="row">
+          <span class="lab">Default rest reminder</span>
+          <div class="tog off"><div class="knob"></div></div>
+        </div>
+        <div class="row">
+          <span class="lab">Appearance</span>
+          <span class="val">Dark</span>
+        </div>
+      </div>
+
+      <!-- SYNC -->
+      <div class="cap seclabel">Data &amp; sync</div>
+      <div class="group">
+        <div class="row">
+          <span class="lab">iCloud sync</span>
+          <div class="tog"><div class="knob"></div></div>
+        </div>
+        <div class="row">
+          <span class="lab">Status</span>
+          <div class="synced"><span class="dot"></span>Synced · just now</div>
+        </div>
+        <div class="row">
+          <span class="lab">Export workout data</span>
+          <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+      </div>
+
+      <!-- ACCOUNT -->
+      <div class="cap seclabel">Account</div>
+      <div class="group">
+        <div class="row">
+          <span class="lab">Email</span>
+          <span class="val">alex.carter@gmail.com</span>
+        </div>
+        <div class="row">
+          <span class="lab">Signed in with</span>
+          <span class="val">Apple</span>
+        </div>
+      </div>
+
+      <!-- ABOUT -->
+      <div class="cap seclabel">About</div>
+      <div class="group">
+        <div class="row"><span class="lab">Privacy policy</span><svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+        <div class="row"><span class="lab">Terms of service</span><svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></div>
+      </div>
+
+      <div class="danger">Delete account</div>
+      <div class="version tab">Version 1.0.0</div>
+
+    </div>
+    <div class="home-ind"></div>
+  </div>
+</div>
+</body>
+</html>

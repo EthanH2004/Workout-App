@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Tracker — Welcome</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo:wdth,wght@62..125,100..900&display=swap');
+:root{
+  --bg:#0A0A0B; --surface:#141416; --raised:#1E1E21; --high:#2E2E33;
+  --border-subtle:rgba(255,255,255,0.07); --border-default:rgba(255,255,255,0.10);
+  --text-primary:#FFFFFF; --text-secondary:#9A9A9D; --text-tertiary:#6A6A6D;
+  --accent:#FF6A28; --accent-text:#FF8A4D; --accent-subtle:rgba(255,106,40,0.14);
+  --text-on-accent:#141210;
+  --r-xs:4px; --r-sm:8px; --r-md:12px; --r-lg:16px;
+  --font:'Archivo',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased;}
+body{background:#060607;font-family:var(--font);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 0;}
+.exp{font-variation-settings:'wdth' 118,'wght' 800;}
+.phone{position:relative;width:390px;height:844px;background:var(--bg);border-radius:48px;border:0.5px solid var(--border-subtle);overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,0.65);color:var(--text-primary);}
+/* subtle radial warmth from bottom */
+.phone::before{content:'';position:absolute;inset:0;background:radial-gradient(120% 60% at 50% 112%, rgba(255,106,40,0.10) 0%, rgba(255,106,40,0) 60%);pointer-events:none;}
+.screen{position:relative;display:flex;flex-direction:column;height:100%;padding:0 24px;}
+.statusbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 0 7px;flex-shrink:0;}
+.statusbar .t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;}
+.statusbar .ind{display:flex;align-items:center;gap:6px;}
+
+.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:30px;}
+.mark{width:64px;height:64px;border-radius:18px;background:var(--accent-subtle);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;margin-bottom:26px;}
+.wordmark{font-variation-settings:'wdth' 118,'wght' 800;font-size:40px;letter-spacing:0.04em;line-height:1;}
+.placeholder-tag{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--text-tertiary);margin-top:9px;}
+.tagline{font-size:16px;color:var(--text-secondary);margin-top:18px;line-height:1.45;max-width:240px;}
+.tagline b{color:var(--accent-text);font-weight:500;}
+
+.cta{display:flex;flex-direction:column;gap:10px;padding-bottom:14px;}
+.btn{font-family:var(--font);font-size:15px;font-weight:600;border:none;border-radius:var(--r-sm);height:52px;width:100%;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;transition:transform 130ms,filter 130ms;}
+.btn:active{transform:scale(0.98);}
+.btn-apple{background:#FFFFFF;color:#0A0A0B;}
+.btn-email{background:var(--accent);color:var(--text-on-accent);}
+.legal{text-align:center;font-size:11px;color:var(--text-tertiary);line-height:1.5;padding-bottom:8px;}
+.legal a{color:var(--text-secondary);text-decoration:none;}
+.home-ind{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:rgba(255,255,255,0.22);}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="screen">
+
+    <div class="statusbar">
+      <span class="t">9:41</span>
+      <span class="ind">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="4.5" width="3" height="7.5" rx="1"/><rect x="10" y="2" width="3" height="10" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round"><path d="M1 4.2C3.2 2.3 5.7 1.3 8.5 1.3s5.3 1 7.5 2.9"/><path d="M3.4 6.9C4.8 5.7 6.6 5 8.5 5s3.7.7 5.1 1.9"/><path d="M5.9 9.6c.7-.6 1.6-1 2.6-1s1.9.4 2.6 1"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="#fff" stroke-opacity="0.45"/><rect x="2" y="2" width="16.5" height="8" rx="1.6" fill="#fff"/><rect x="23" y="4" width="1.6" height="4" rx="0.8" fill="#fff" fill-opacity="0.45"/></svg>
+      </span>
+    </div>
+
+    <div class="hero">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l5-6 4 3 7-9"/><path d="M20 5h-4M20 5v4"/></svg>
+      </div>
+      <div class="wordmark">LIFT</div>
+      <div class="placeholder-tag">Working name · placeholder</div>
+      <div class="tagline">Log your lifts in seconds.<br><b>Watch yourself get stronger.</b></div>
+    </div>
+
+    <div class="cta">
+      <button class="btn btn-apple">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="#0A0A0B"><path d="M17.05 12.6c-.03-2.6 2.13-3.85 2.23-3.91-1.22-1.78-3.11-2.02-3.78-2.05-1.6-.16-3.13.94-3.94.94-.82 0-2.06-.92-3.4-.9-1.74.03-3.36 1.02-4.26 2.58-1.83 3.17-.47 7.85 1.31 10.42.87 1.26 1.9 2.67 3.25 2.62 1.31-.05 1.8-.84 3.38-.84 1.57 0 2.02.84 3.4.82 1.41-.03 2.3-1.28 3.16-2.54.99-1.45 1.4-2.86 1.42-2.93-.03-.01-2.72-1.04-2.75-4.13zM14.47 4.99c.72-.87 1.21-2.08 1.07-3.29-1.04.04-2.3.69-3.04 1.56-.66.77-1.24 2-1.09 3.18 1.16.09 2.34-.59 3.06-1.45z"/></svg>
+        Continue with Apple
+      </button>
+      <button class="btn btn-email">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--text-on-accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/></svg>
+        Continue with email
+      </button>
+    </div>
+
+    <div class="legal">
+      By continuing you agree to our <a>Terms</a> and <a>Privacy Policy</a>.
+    </div>
+
+    <div class="home-ind"></div>
+  </div>
+</div>
+</body>
+</html>
