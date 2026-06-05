@@ -10,7 +10,8 @@
     "backgroundColor": "#0A0A0B",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.workout-tracker"
     },
     "android": {
       "adaptiveIcon": {
