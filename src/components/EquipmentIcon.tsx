@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 import { colors, icon, type ColorToken } from '../theme/tokens';
 
 export type Equipment =
@@ -45,43 +45,43 @@ export function EquipmentIcon({
     barbell: <Path {...common} d="M2 12h2M20 12h2M5 9v6M7 10.5v3M17 10.5v3M19 9v6M7 12h10" />,
     dumbbell: <Path {...common} d="M6.5 7v10M9.5 8.5v7M14.5 8.5v7M17.5 7v10M9.5 12h5" />,
     cable: (
-      <>
+      <G>
         <Circle {...common} cx={12} cy={5} r={2.2} />
         <Path {...common} d="M12 7.2v5l-4 7M12 12.2l4 7" />
-      </>
+      </G>
     ),
     machine: (
-      <>
+      <G>
         <Rect {...common} x={4} y={4} width={16} height={16} rx={2} />
         <Path {...common} d="M4 14h7v6M14 4v6h6" />
-      </>
+      </G>
     ),
     kettlebell: (
-      <>
+      <G>
         <Path {...common} d="M9 9.5a3 3 0 0 1 6 0" />
         <Path
           {...common}
           d="M8.3 9.7C6.6 11 5.5 13.2 5.5 15.5A3.5 3.5 0 0 0 9 19h6a3.5 3.5 0 0 0 3.5-3.5c0-2.3-1.1-4.5-2.8-5.8"
         />
-      </>
+      </G>
     ),
     plate: (
-      <>
+      <G>
         <Circle {...common} cx={12} cy={12} r={8.5} />
         <Circle {...common} cx={12} cy={12} r={3} />
-      </>
+      </G>
     ),
     bodyweight: (
-      <>
+      <G>
         <Circle {...common} cx={12} cy={5} r={2.2} />
         <Path {...common} d="M12 7.2v6M12 9.5l-4 2M12 9.5l4 2M12 13.2l-3 5.5M12 13.2l3 5.5" />
-      </>
+      </G>
     ),
     band: (
-      <>
+      <G>
         <Path {...common} d="M3.5 9.3c2.8-2.4 5.7 2.4 8.5 0s5.7-2.4 8.5 0" />
         <Path {...common} d="M3.5 14.7c2.8-2.4 5.7 2.4 8.5 0s5.7-2.4 8.5 0" />
-      </>
+      </G>
     ),
   };
 
