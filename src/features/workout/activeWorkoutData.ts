@@ -172,30 +172,6 @@ export function firstIncompleteSetId(session: ActiveSession): string | null {
   return null;
 }
 
-export interface SetLocation {
-  exercise: ActiveExercise;
-  set: ActiveSet;
-}
-
-/**
- * Incomplete sets in document order, excluding `excludeSetId` (the set being
- * logged). The number pad advances through this queue; when its length is 1 the
- * next set is the final one (→ "Log & finish"). Computed against the pre-dispatch
- * session, so the excluded set stands in for the one about to be completed.
- */
-export function incompleteSetsExcluding(
-  session: ActiveSession,
-  excludeSetId: string,
-): SetLocation[] {
-  const out: SetLocation[] = [];
-  for (const ex of session.exercises) {
-    for (const s of ex.sets) {
-      if (!s.completed && s.id !== excludeSetId) out.push({ exercise: ex, set: s });
-    }
-  }
-  return out;
-}
-
 /** True when there is at least one set and every set is completed. */
 export function allSetsComplete(session: ActiveSession): boolean {
   const total = session.exercises.reduce((n, ex) => n + ex.sets.length, 0);

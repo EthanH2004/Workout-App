@@ -36,26 +36,22 @@ interface NumberPadSheetProps {
   initialWeight: string; // display units, '' if no ghost target
   initialReps: string;
   unit: WeightUnit;
-  mode: 'log' | 'edit';
-  /** Log mode only: this is the last remaining set → CTA reads "Log & finish". */
-  isLast: boolean;
   onSubmit: (weight: number, reps: number) => void;
   onClose: () => void;
 }
 
 /**
  * The custom logging keypad (§2.3 / §8.3) — a bottom sheet over the active
- * workout. Reanimated drives the slide; a Pan gesture swipes it down to dismiss;
- * a rigid haptic fires on log. No OS keyboard: the 3-column keypad edits the
- * focused field, plate chips bump weight, and the CTA logs + advances.
+ * workout. Reanimated drives the slide; a Pan gesture swipes it down to dismiss
+ * (cancelling the entry); a rigid haptic fires on Done. No OS keyboard: the
+ * 3-column keypad edits the focused field, plate chips bump weight up or down,
+ * and "Done" logs the current set and closes (the user picks the next set).
  */
 export function NumberPadSheet({
   setKey,
   initialWeight,
   initialReps,
   unit,
-  mode,
-  isLast,
   onSubmit,
   onClose,
 }: NumberPadSheetProps) {
@@ -63,12 +59,18 @@ export function NumberPadSheet({
   const [weight, setWeight] = useState(initialWeight);
   const [reps, setReps] = useState(initialReps);
   const [active, setActive] = useState<ActiveField>('weight');
+  // "Fresh entry on focus": the next digit replaces the field, then digits append.
+  const [armed, setArmed] = useState(true);
+  // Plate chips add by default; the +/− toggle flips them to subtract.
+  const [plateSubtract, setPlateSubtract] = useState(false);
 
-  // Re-seed when the target set changes (advance to next set), staying mounted.
+  // Re-seed if the target set changes while mounted.
   useEffect(() => {
     setWeight(initialWeight);
     setReps(initialReps);
     setActive('weight');
+    setArmed(true);
+    setPlateSubtract(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setKey]);
 
@@ -127,11 +129,24 @@ export function NumberPadSheet({
   function handleKey(key: string) {
     Haptics.selectionAsync();
     if (key === 'backspace') {
+      setArmed(false);
       applyToActive((v) => v.slice(0, -1));
       return;
     }
     if (key === '.') {
-      applyToActive((v) => (active === 'reps' || v.includes('.') ? v : v === '' ? '0.' : v + '.'));
+      if (active === 'reps') return; // reps are integers
+      if (armed) {
+        setArmed(false);
+        applyToActive(() => '0.');
+        return;
+      }
+      applyToActive((v) => (v.includes('.') ? v : v === '' ? '0.' : v + '.'));
+      return;
+    }
+    // Digit: replace the field on first press after focus, then append.
+    if (armed) {
+      setArmed(false);
+      applyToActive(() => key);
       return;
     }
     applyToActive((v) => {
@@ -143,15 +158,22 @@ export function NumberPadSheet({
   function handlePlate(delta: number) {
     Haptics.selectionAsync();
     setActive('weight');
+    setArmed(false);
     setWeight((v) => {
-      const n = (parseFloat(v || '0') || 0) + delta;
-      return String(n);
+      const next = (parseFloat(v || '0') || 0) + (plateSubtract ? -delta : delta);
+      return String(Math.max(0, next));
     });
+  }
+
+  function togglePlateSign() {
+    Haptics.selectionAsync();
+    setPlateSubtract((s) => !s);
   }
 
   function focus(field: ActiveField) {
     Haptics.selectionAsync();
     setActive(field);
+    setArmed(true);
   }
 
   const weightNum = parseFloat(weight);
@@ -163,7 +185,7 @@ export function NumberPadSheet({
     !Number.isNaN(repsNum) &&
     repsNum > 0;
 
-  const ctaLabel = mode === 'edit' ? 'Save set' : isLast ? 'Log & finish' : 'Log & next set';
+  const plateSign = plateSubtract ? '−' : '+';
 
   function submit() {
     if (!valid) return;
@@ -226,6 +248,26 @@ export function NumberPadSheet({
           </View>
 
           <View style={styles.plates}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: plateSubtract }}
+              accessibilityLabel={plateSubtract ? 'Plate chips subtract' : 'Plate chips add'}
+              onPress={togglePlateSign}
+              style={({ pressed }) => [
+                styles.plate,
+                styles.plateToggle,
+                plateSubtract && styles.plateToggleActive,
+                pressed && styles.platePressed,
+              ]}
+            >
+              <Text
+                variant="caption"
+                color={plateSubtract ? 'accentText' : 'textSecondary'}
+                style={styles.plateLabel}
+              >
+                {plateSign}
+              </Text>
+            </Pressable>
             {PLATES.map((delta) => (
               <Pressable
                 key={delta}
@@ -234,7 +276,7 @@ export function NumberPadSheet({
                 style={({ pressed }) => [styles.plate, pressed && styles.platePressed]}
               >
                 <Text variant="caption" color="textSecondary" style={styles.plateLabel}>
-                  {`+${delta}`}
+                  {`${plateSign}${delta}`}
                 </Text>
               </Pressable>
             ))}
@@ -263,7 +305,7 @@ export function NumberPadSheet({
           </View>
 
           <Button
-            label={ctaLabel}
+            label="Done"
             onPress={submit}
             disabled={!valid}
             icon={<Check size={19} color={colors.textOnAccent} weight="bold" />}
@@ -340,6 +382,14 @@ const styles = StyleSheet.create({
   },
   platePressed: {
     opacity: motion.press.opacity,
+  },
+  plateToggle: {
+    minWidth: spacing[10],
+    paddingHorizontal: spacing[3],
+    alignItems: 'center',
+  },
+  plateToggleActive: {
+    backgroundColor: colors.accentSubtle,
   },
   plateLabel: {
     fontVariant: ['tabular-nums'],

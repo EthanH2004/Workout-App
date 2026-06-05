@@ -22,7 +22,6 @@ import {
   createMockSession,
   firstIncompleteSetId,
   hasLoggedSets,
-  incompleteSetsExcluding,
   type ActiveExercise,
   type ActiveSet,
   type LastTime,
@@ -52,7 +51,6 @@ interface PadTarget {
   mode: 'log' | 'edit';
   initialWeight: string;
   initialReps: string;
-  isLast: boolean;
 }
 
 /** Pre-fill the pad from a set's displayed values, blanking the em-dash placeholder. */
@@ -84,44 +82,32 @@ export default function ActiveWorkoutScreen() {
 
   const [padTarget, setPadTarget] = useState<PadTarget | null>(null);
 
-  const activeSetId = firstIncompleteSetId(session);
+  // Suggested-next highlight; while the pad is open it follows the set being edited.
+  const highlightedSetId = padTarget ? padTarget.setId : firstIncompleteSetId(session);
   const allDone = allSetsComplete(session);
   const isEmpty = session.exercises.length === 0;
 
+  // Any set in any card can be opened — order isn't locked.
   function openPad(exercise: ActiveExercise, s: ActiveSet) {
-    const mode: 'log' | 'edit' = s.completed ? 'edit' : 'log';
     setPadTarget({
       exerciseId: exercise.id,
       setId: s.id,
-      mode,
-      isLast: mode === 'log' && incompleteSetsExcluding(session, s.id).length === 0,
+      mode: s.completed ? 'edit' : 'log',
       ...padPrefill(s, exercise.lastTime),
     });
   }
 
+  // "Done": log (or save) the current set and close — the user picks the next set.
   function handlePadSubmit(weightDisplay: number, reps: number) {
     if (!padTarget) return;
     const weightKg = fromDisplayWeight(weightDisplay, UNIT);
+    const { exerciseId, setId } = padTarget;
     if (padTarget.mode === 'edit') {
-      dispatch({ type: 'EDIT_SET', exerciseId: padTarget.exerciseId, setId: padTarget.setId, weightKg, reps });
-      setPadTarget(null);
-      return;
+      dispatch({ type: 'EDIT_SET', exerciseId, setId, weightKg, reps });
+    } else {
+      dispatch({ type: 'LOG_SET', exerciseId, setId, weightKg, reps });
     }
-    dispatch({ type: 'LOG_SET', exerciseId: padTarget.exerciseId, setId: padTarget.setId, weightKg, reps });
-    // Advance to the next remaining set (excluding the one just logged) or close.
-    const remaining = incompleteSetsExcluding(session, padTarget.setId);
-    const next = remaining[0];
-    if (!next) {
-      setPadTarget(null);
-      return;
-    }
-    setPadTarget({
-      exerciseId: next.exercise.id,
-      setId: next.set.id,
-      mode: 'log',
-      isLast: remaining.length === 1,
-      ...padPrefill(next.set, next.exercise.lastTime),
-    });
+    setPadTarget(null);
   }
 
   function handleClose() {
@@ -186,7 +172,7 @@ export default function ActiveWorkoutScreen() {
                 exercise={exercise}
                 raised={index === 0}
                 first={index === 0}
-                activeSetId={activeSetId}
+                activeSetId={highlightedSetId}
                 onPressSet={(set) => openPad(exercise, set)}
                 onToggleComplete={(set) => handleToggleComplete(exercise.id, set)}
                 onAddSet={() => dispatch({ type: 'ADD_SET', exerciseId: exercise.id })}
@@ -218,8 +204,6 @@ export default function ActiveWorkoutScreen() {
           initialWeight={padTarget.initialWeight}
           initialReps={padTarget.initialReps}
           unit={UNIT}
-          mode={padTarget.mode}
-          isLast={padTarget.isLast}
           onSubmit={handlePadSubmit}
           onClose={() => setPadTarget(null)}
         />

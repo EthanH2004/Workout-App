@@ -36,7 +36,11 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="workout/active" options={{ presentation: 'modal' }} />
+      {/* gestureEnabled: false — swipe-down would bypass the discard confirm; exit via the chevron. */}
+      <Stack.Screen
+        name="workout/active"
+        options={{ presentation: 'modal', gestureEnabled: false }}
+      />
     </Stack>
   );
 }
