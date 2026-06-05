@@ -14,7 +14,7 @@ import {
   type SetRowState,
 } from '../../src/components';
 import { colors, fontFamily, icon, layout, radius, spacing } from '../../src/theme/tokens';
-import { toDisplayWeight } from '../../src/utils/units';
+import { fromDisplayWeight, toDisplayWeight } from '../../src/utils/units';
 import {
   activeReducer,
   allSetsComplete,
@@ -22,10 +22,12 @@ import {
   createMockSession,
   firstIncompleteSetId,
   hasLoggedSets,
+  incompleteSetsExcluding,
   type ActiveExercise,
   type ActiveSet,
   type LastTime,
 } from '../../src/features/workout/activeWorkoutData';
+import { NumberPadSheet } from '../../src/features/workout/NumberPadSheet';
 
 const UNIT = 'lb';
 const WEIGHT_LABEL = 'Lbs';
@@ -41,6 +43,24 @@ function setValues(s: ActiveSet, lastTime: LastTime | null) {
   return {
     weight: weightKg != null ? String(toDisplayWeight(weightKg, UNIT)) : '—',
     reps: reps != null ? String(reps) : '—',
+  };
+}
+
+interface PadTarget {
+  exerciseId: string;
+  setId: string;
+  mode: 'log' | 'edit';
+  initialWeight: string;
+  initialReps: string;
+  isLast: boolean;
+}
+
+/** Pre-fill the pad from a set's displayed values, blanking the em-dash placeholder. */
+function padPrefill(s: ActiveSet, lastTime: LastTime | null) {
+  const values = setValues(s, lastTime);
+  return {
+    initialWeight: values.weight === '—' ? '' : values.weight,
+    initialReps: values.reps === '—' ? '' : values.reps,
   };
 }
 
@@ -62,9 +82,47 @@ export default function ActiveWorkoutScreen() {
   }, []);
   const timer = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`;
 
+  const [padTarget, setPadTarget] = useState<PadTarget | null>(null);
+
   const activeSetId = firstIncompleteSetId(session);
   const allDone = allSetsComplete(session);
   const isEmpty = session.exercises.length === 0;
+
+  function openPad(exercise: ActiveExercise, s: ActiveSet) {
+    const mode: 'log' | 'edit' = s.completed ? 'edit' : 'log';
+    setPadTarget({
+      exerciseId: exercise.id,
+      setId: s.id,
+      mode,
+      isLast: mode === 'log' && incompleteSetsExcluding(session, s.id).length === 0,
+      ...padPrefill(s, exercise.lastTime),
+    });
+  }
+
+  function handlePadSubmit(weightDisplay: number, reps: number) {
+    if (!padTarget) return;
+    const weightKg = fromDisplayWeight(weightDisplay, UNIT);
+    if (padTarget.mode === 'edit') {
+      dispatch({ type: 'EDIT_SET', exerciseId: padTarget.exerciseId, setId: padTarget.setId, weightKg, reps });
+      setPadTarget(null);
+      return;
+    }
+    dispatch({ type: 'LOG_SET', exerciseId: padTarget.exerciseId, setId: padTarget.setId, weightKg, reps });
+    // Advance to the next remaining set (excluding the one just logged) or close.
+    const remaining = incompleteSetsExcluding(session, padTarget.setId);
+    const next = remaining[0];
+    if (!next) {
+      setPadTarget(null);
+      return;
+    }
+    setPadTarget({
+      exerciseId: next.exercise.id,
+      setId: next.set.id,
+      mode: 'log',
+      isLast: remaining.length === 1,
+      ...padPrefill(next.set, next.exercise.lastTime),
+    });
+  }
 
   function handleClose() {
     if (hasLoggedSets(session)) {
@@ -114,43 +172,59 @@ export default function ActiveWorkoutScreen() {
   );
 
   return (
-    <ScreenScaffold header={header}>
-      {FORCE_VARIANT === 'loading' ? (
-        <LoadingCards />
-      ) : isEmpty ? (
-        <EmptyWorkoutCard onAddExercise={handleAddExercise} />
-      ) : (
-        <>
-          {session.exercises.map((exercise, index) => (
-            <ExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              raised={index === 0}
-              first={index === 0}
-              activeSetId={activeSetId}
-              onToggleComplete={(set) => handleToggleComplete(exercise.id, set)}
-              onAddSet={() => dispatch({ type: 'ADD_SET', exerciseId: exercise.id })}
+    <View style={styles.root}>
+      <ScreenScaffold header={header}>
+        {FORCE_VARIANT === 'loading' ? (
+          <LoadingCards />
+        ) : isEmpty ? (
+          <EmptyWorkoutCard onAddExercise={handleAddExercise} />
+        ) : (
+          <>
+            {session.exercises.map((exercise, index) => (
+              <ExerciseCard
+                key={exercise.id}
+                exercise={exercise}
+                raised={index === 0}
+                first={index === 0}
+                activeSetId={activeSetId}
+                onPressSet={(set) => openPad(exercise, set)}
+                onToggleComplete={(set) => handleToggleComplete(exercise.id, set)}
+                onAddSet={() => dispatch({ type: 'ADD_SET', exerciseId: exercise.id })}
+              />
+            ))}
+
+            <Button
+              label="Add exercise"
+              variant="secondary"
+              onPress={handleAddExercise}
+              icon={<Plus size={18} color={colors.textPrimary} weight="bold" />}
+              style={styles.addExercise}
             />
-          ))}
 
-          <Button
-            label="Add exercise"
-            variant="secondary"
-            onPress={handleAddExercise}
-            icon={<Plus size={18} color={colors.textPrimary} weight="bold" />}
-            style={styles.addExercise}
-          />
+            {allDone ? (
+              <Text variant="caption" color="success" style={styles.allDone}>
+                All sets complete
+              </Text>
+            ) : null}
 
-          {allDone ? (
-            <Text variant="caption" color="success" style={styles.allDone}>
-              All sets complete
-            </Text>
-          ) : null}
+            <Button label="Finish workout" onPress={handleFinish} style={styles.finish} />
+          </>
+        )}
+      </ScreenScaffold>
 
-          <Button label="Finish workout" onPress={handleFinish} style={styles.finish} />
-        </>
-      )}
-    </ScreenScaffold>
+      {padTarget ? (
+        <NumberPadSheet
+          setKey={padTarget.setId}
+          initialWeight={padTarget.initialWeight}
+          initialReps={padTarget.initialReps}
+          unit={UNIT}
+          mode={padTarget.mode}
+          isLast={padTarget.isLast}
+          onSubmit={handlePadSubmit}
+          onClose={() => setPadTarget(null)}
+        />
+      ) : null}
+    </View>
   );
 }
 
@@ -161,6 +235,7 @@ function ExerciseCard({
   raised,
   first,
   activeSetId,
+  onPressSet,
   onToggleComplete,
   onAddSet,
 }: {
@@ -168,6 +243,7 @@ function ExerciseCard({
   raised: boolean;
   first: boolean;
   activeSetId: string | null;
+  onPressSet: (set: ActiveSet) => void;
   onToggleComplete: (set: ActiveSet) => void;
   onAddSet: () => void;
 }) {
@@ -205,6 +281,7 @@ function ExerciseCard({
             weight={values.weight}
             reps={values.reps}
             state={state}
+            onPress={() => onPressSet(s)}
             onToggleComplete={() => onToggleComplete(s)}
           />
         );
@@ -264,6 +341,10 @@ function LoadingCards() {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
   nav: {
     flexDirection: 'row',
     alignItems: 'center',

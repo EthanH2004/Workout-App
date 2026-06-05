@@ -100,7 +100,9 @@ export function createEmptySession(): ActiveSession {
 
 export type ActiveAction =
   | { type: 'TOGGLE_COMPLETE'; exerciseId: string; setId: string }
-  | { type: 'ADD_SET'; exerciseId: string };
+  | { type: 'ADD_SET'; exerciseId: string }
+  | { type: 'LOG_SET'; exerciseId: string; setId: string; weightKg: number; reps: number }
+  | { type: 'EDIT_SET'; exerciseId: string; setId: string; weightKg: number; reps: number };
 
 function mapExercise(
   session: ActiveSession,
@@ -133,6 +135,26 @@ export function activeReducer(state: ActiveSession, action: ActiveAction): Activ
         ...ex,
         sets: [...ex.sets, set(ex.sets.length + 1, null, null, false)],
       }));
+    case 'LOG_SET':
+      // Number-pad "Log & next set": write values and mark the set complete.
+      return mapExercise(state, action.exerciseId, (ex) => ({
+        ...ex,
+        sets: ex.sets.map((s) =>
+          s.id === action.setId
+            ? { ...s, weightKg: action.weightKg, reps: action.reps, completed: true }
+            : s,
+        ),
+      }));
+    case 'EDIT_SET':
+      // "Save set": write values, leave completion as-is (no auto-advance).
+      return mapExercise(state, action.exerciseId, (ex) => ({
+        ...ex,
+        sets: ex.sets.map((s) =>
+          s.id === action.setId
+            ? { ...s, weightKg: action.weightKg, reps: action.reps }
+            : s,
+        ),
+      }));
     default:
       return state;
   }
@@ -148,6 +170,30 @@ export function firstIncompleteSetId(session: ActiveSession): string | null {
     }
   }
   return null;
+}
+
+export interface SetLocation {
+  exercise: ActiveExercise;
+  set: ActiveSet;
+}
+
+/**
+ * Incomplete sets in document order, excluding `excludeSetId` (the set being
+ * logged). The number pad advances through this queue; when its length is 1 the
+ * next set is the final one (→ "Log & finish"). Computed against the pre-dispatch
+ * session, so the excluded set stands in for the one about to be completed.
+ */
+export function incompleteSetsExcluding(
+  session: ActiveSession,
+  excludeSetId: string,
+): SetLocation[] {
+  const out: SetLocation[] = [];
+  for (const ex of session.exercises) {
+    for (const s of ex.sets) {
+      if (!s.completed && s.id !== excludeSetId) out.push({ exercise: ex, set: s });
+    }
+  }
+  return out;
 }
 
 /** True when there is at least one set and every set is completed. */
