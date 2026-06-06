@@ -55,6 +55,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          current_routine_id: string | null
           deleted_at: string | null
           display_name: string | null
           id: string
@@ -63,6 +64,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_routine_id?: string | null
           deleted_at?: string | null
           display_name?: string | null
           id: string
@@ -71,13 +73,22 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_routine_id?: string | null
           deleted_at?: string | null
           display_name?: string | null
           id?: string
           unit_preference?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_current_routine_id_fkey"
+            columns: ["current_routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       routine_day_exercises: {
         Row: {
