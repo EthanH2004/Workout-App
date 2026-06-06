@@ -348,6 +348,45 @@ export function adoptTemplate(templateId: string): { programId: string; firstDay
   return { programId: program.id, firstDayId: days[0].id };
 }
 
+export function renameProgram(programId: string, name: string): void {
+  set({ ...state, programs: state.programs.map((p) => (p.id === programId ? { ...p, name } : p)) });
+}
+
+/** Append a new (empty) day to a program; returns its id for the Day editor. */
+export function addDay(programId: string, name: string): { dayId: string } {
+  const day = makeDay(name, []);
+  set({
+    ...state,
+    programs: state.programs.map((p) =>
+      p.id === programId ? { ...p, days: [...p.days, day] } : p,
+    ),
+  });
+  return { dayId: day.id };
+}
+
+export function deleteDay(dayId: string): void {
+  set({
+    ...state,
+    programs: state.programs.map((p) => ({ ...p, days: p.days.filter((d) => d.id !== dayId) })),
+  });
+}
+
+export function reorderDays(programId: string, orderedDayIds: string[]): void {
+  set({
+    ...state,
+    programs: state.programs.map((p) =>
+      p.id !== programId
+        ? p
+        : {
+            ...p,
+            days: orderedDayIds
+              .map((id) => p.days.find((d) => d.id === id))
+              .filter((d): d is ProgramDay => !!d),
+          },
+    ),
+  });
+}
+
 /** Create an empty program. Becomes current if the library was empty. */
 export function createProgram(name: string): { programId: string } {
   const program: Program = { id: uuid(), name: name.trim() || 'New program', days: [] };

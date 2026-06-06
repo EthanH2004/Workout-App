@@ -1,6 +1,7 @@
 /** Shared UI primitives (the design-system foundation). Import from here. */
 export { Button } from './Button';
 export { Card } from './Card';
+export { DraggableList } from './DraggableList';
 export { EquipmentIcon, type Equipment } from './EquipmentIcon';
 export { Input } from './Input';
 export { PlaceholderScreen } from './PlaceholderScreen';

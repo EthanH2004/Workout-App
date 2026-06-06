@@ -5,6 +5,7 @@ import { Card, EquipmentIcon, ScreenScaffold, SectionLabel, Text } from '../../s
 import { colors, elevation, icon, layout, radius, spacing } from '../../src/theme/tokens';
 import {
   adoptTemplate,
+  createProgram,
   deleteProgram,
   programExerciseCount,
   setCurrentProgram,
@@ -29,9 +30,15 @@ export default function RoutinesScreen() {
   const current = programs.find((p) => p.id === currentProgramId) ?? null;
   const others = programs.filter((p) => p.id !== currentProgramId);
 
-  const newProgram = () => router.push('/routine-builder');
   const editDay = (dayId: string) => router.push({ pathname: '/routine-builder', params: { dayId } });
   const startDay = (dayId: string) => router.push({ pathname: '/workout/active', params: { dayId } });
+  const editProgram = (programId: string) =>
+    router.push({ pathname: '/program-editor', params: { programId } });
+
+  function newProgram() {
+    const { programId } = createProgram('New program');
+    editProgram(programId);
+  }
 
   function adopt(t: RoutineTemplate) {
     adoptTemplate(t.id);
@@ -45,19 +52,21 @@ export default function RoutinesScreen() {
   }
 
   function openMenu(program: Program, isCurrent: boolean) {
-    const options = isCurrent
-      ? ['Delete program', 'Cancel']
-      : ['Set as current', 'Delete program', 'Cancel'];
+    const actions: { label: string; run: () => void; destructive?: boolean }[] = [
+      { label: 'Edit program', run: () => editProgram(program.id) },
+      ...(isCurrent ? [] : [{ label: 'Set as current', run: () => setCurrentProgram(program.id) }]),
+      { label: 'Delete program', run: () => confirmDelete(program), destructive: true },
+    ];
+    const options = [...actions.map((a) => a.label), 'Cancel'];
     ActionSheetIOS.showActionSheetWithOptions(
       {
         title: program.name,
         options,
-        destructiveButtonIndex: isCurrent ? 0 : 1,
+        destructiveButtonIndex: actions.findIndex((a) => a.destructive),
         cancelButtonIndex: options.length - 1,
       },
       (i) => {
-        if (!isCurrent && i === 0) setCurrentProgram(program.id);
-        else if (i === options.length - 2) confirmDelete(program);
+        if (i < actions.length) actions[i].run();
       },
     );
   }
@@ -193,8 +202,8 @@ export default function RoutinesScreen() {
             <Pressable
               key={program.id}
               accessibilityRole="button"
-              accessibilityLabel={`${program.name} options`}
-              onPress={() => openMenu(program, false)}
+              accessibilityLabel={`Edit ${program.name}`}
+              onPress={() => editProgram(program.id)}
               style={({ pressed }) => [styles.otherCard, pressed && styles.otherCardPressed]}
             >
               <List size={22} color={colors.textSecondary} weight="regular" />
