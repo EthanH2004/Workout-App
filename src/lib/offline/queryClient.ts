@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { mmkvPersistStorage } from './storage';
-import { updateUnitPreference } from '../supabase/queries';
+import { insertCustomExercise, updateUnitPreference, type NewCustomExercise } from '../supabase/queries';
 import type { WeightUnit } from '../../utils/units';
 
 /** Keep cached data well past the session so reads work offline. */
@@ -32,6 +32,10 @@ export const queryClient = new QueryClient({
 queryClient.setMutationDefaults(['profile', 'updateUnitPreference'], {
   mutationFn: (vars: { userId: string; unit: WeightUnit }) =>
     updateUnitPreference(vars.userId, vars.unit),
+});
+
+queryClient.setMutationDefaults(['exercises', 'createCustom'], {
+  mutationFn: (vars: NewCustomExercise) => insertCustomExercise(vars),
 });
 
 /** Persists both the query cache (offline reads) and the mutation queue (offline writes). */

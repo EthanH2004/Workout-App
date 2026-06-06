@@ -13,13 +13,12 @@ import {
 import type { Equipment } from '../src/components';
 import { colors, fontFamily, icon, layout, radius, spacing, typography } from '../src/theme/tokens';
 import {
-  createCustomExercise,
   MUSCLE_LABEL,
   MUSCLE_ORDER,
-  useExerciseCatalog,
   type CatalogExercise,
   type Muscle,
 } from '../src/features/exercises/exerciseCatalog';
+import { useCreateCustomExercise, useExerciseCatalog } from '../src/features/exercises/useExercises';
 import { cancelExerciseRequest, deliverExercises } from '../src/features/exercises/pickerHandoff';
 
 const EQUIPMENT_OPTIONS: Equipment[] = [
@@ -39,15 +38,14 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export default function ExercisePickerScreen() {
   const router = useRouter();
   const { state, refetch } = useExerciseCatalog();
+  const createCustom = useCreateCustomExercise();
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Muscle | 'all'>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [custom, setCustom] = useState<CatalogExercise[]>([]);
   const [createName, setCreateName] = useState<string | null>(null); // non-null = form open
 
-  const catalog = state.status === 'ready' ? state.exercises : [];
-  const all = useMemo(() => [...catalog, ...custom], [catalog, custom]);
+  const all: CatalogExercise[] = state.status === 'ready' ? state.exercises : [];
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -85,9 +83,8 @@ export default function ExercisePickerScreen() {
   }
 
   function handleCreate(name: string, muscle: Muscle, equipment: Equipment) {
-    const exercise = createCustomExercise(name, muscle, equipment);
-    setCustom((prev) => [...prev, exercise]);
-    setSelected((prev) => new Set(prev).add(exercise.id));
+    const exercise = createCustom.create(name, muscle, equipment);
+    if (exercise) setSelected((prev) => new Set(prev).add(exercise.id));
     setCreateName(null);
   }
 
