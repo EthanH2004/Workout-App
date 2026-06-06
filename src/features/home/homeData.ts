@@ -33,8 +33,9 @@ export interface HomeRecentSession {
   equipment: string | null; // lead icon (first exercise)
 }
 
+// "Up next" now comes from the current program (routinesStore); Home owns only
+// the stats + recent history here.
 export interface HomeData {
-  upNext: HomeUpNext | null; // null = has history but no routine
   last7: { workouts: number; volumeKg: number };
   recent: HomeRecentSession[];
 }
@@ -101,23 +102,7 @@ const LAST7 = {
   volumeKg: totalVolume([...PUSH_SETS, ...PULL_SETS, ...LEG_SETS]),
 };
 
-const UP_NEXT: HomeUpNext = {
-  routineDayName: 'Push day',
-  groupName: 'Push Pull Legs',
-  exerciseCount: 6,
-  totalSets: 19,
-  preview: [
-    { name: 'Barbell bench press', equipment: 'barbell', targetSets: 4 },
-    { name: 'Incline dumbbell press', equipment: 'dumbbell', targetSets: 3 },
-    { name: 'Seated shoulder press', equipment: 'dumbbell', targetSets: 3 },
-  ],
-  moreNames: ['Cable fly', 'Triceps pushdown', 'Lateral raise'],
-};
-
-const MOCK_HOME: HomeData = { upNext: UP_NEXT, last7: LAST7, recent: RECENT };
-
-// "Has history but no routine yet" variant (Up next becomes a quick-start prompt).
-const MOCK_NO_ROUTINE: HomeData = { upNext: null, last7: LAST7, recent: RECENT };
+const MOCK_HOME: HomeData = { last7: LAST7, recent: RECENT };
 
 /* --------------------------------- hook ----------------------------------- */
 
@@ -125,7 +110,7 @@ const MOCK_NO_ROUTINE: HomeData = { upNext: null, last7: LAST7, recent: RECENT }
  * Preview a non-default state on the simulator by setting this, then reload:
  * 'loading' | 'error' | 'empty' | 'no-routine'. Leave null for the populated screen.
  */
-const FORCE_STATE: 'loading' | 'error' | 'empty' | 'no-routine' | null = null;
+const FORCE_STATE: 'loading' | 'error' | 'empty' | null = null;
 
 /** Mock Home data source. Returns a discriminated state the screen renders 1:1. */
 export function useHomeData(): { state: HomeQueryState; refetch: () => void } {
@@ -139,8 +124,6 @@ export function useHomeData(): { state: HomeQueryState; refetch: () => void } {
       return { state: { status: 'error', cached: MOCK_HOME }, refetch };
     case 'empty':
       return { state: { status: 'empty' }, refetch };
-    case 'no-routine':
-      return { state: { status: 'ready', data: MOCK_NO_ROUTINE }, refetch };
     default:
       return { state: { status: 'ready', data: MOCK_HOME }, refetch };
   }

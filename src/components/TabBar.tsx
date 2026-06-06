@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChartLineUp, House, ListBullets, Plus, User } from 'phosphor-react-native';
 import { colors, elevation, icon, layout, motion, radius, spacing } from '../theme/tokens';
+import { currentNextDay } from '../features/routines/routinesStore';
 import { Text } from './Text';
 
 type TabName = 'home' | 'routines' | 'progress' | 'profile';
@@ -92,7 +93,14 @@ export function TabBar({ state, navigation }: TabBarProps) {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Start workout"
-              onPress={() => router.push('/workout/active')}
+              onPress={() => {
+                const next = currentNextDay();
+                router.push(
+                  next
+                    ? { pathname: '/workout/active', params: { dayId: next.day.id } }
+                    : '/workout/active',
+                );
+              }}
               style={({ pressed }) => [
                 styles.fabPress,
                 pressed && {

@@ -295,6 +295,21 @@ export function programExerciseCount(program: Program): number {
   return program.days.reduce((n, d) => n + d.exercises.length, 0);
 }
 
+/** The current program's next day in the rotation (mock — advances on finish). */
+export function currentNextDay(): { program: Program; day: ProgramDay; dayIndex: number } | null {
+  const program = currentProgram();
+  if (!program || program.days.length === 0) return null;
+  const dayIndex = state.nextDayIndex % program.days.length;
+  return { program, day: program.days[dayIndex], dayIndex };
+}
+
+/** Advance the rotation to the next day (called after a workout finishes). */
+export function advanceCurrentDay(): void {
+  const program = currentProgram();
+  if (!program || program.days.length === 0) return;
+  set({ ...state, nextDayIndex: (state.nextDayIndex + 1) % program.days.length });
+}
+
 /* ------------------------------- mutations -------------------------------- */
 
 export function setCurrentProgram(programId: string): void {

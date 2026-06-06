@@ -19,6 +19,28 @@ import {
   type HomeRecentSession,
   type HomeUpNext,
 } from '../../src/features/home/homeData';
+import {
+  currentNextDay,
+  useRoutines,
+  type Program,
+  type ProgramDay,
+} from '../../src/features/routines/routinesStore';
+
+/** Build the Home "Up next" view from the current program's next day. */
+function buildUpNext(program: Program, day: ProgramDay): HomeUpNext {
+  return {
+    routineDayName: day.name,
+    groupName: program.name,
+    exerciseCount: day.exercises.length,
+    totalSets: day.exercises.reduce((n, e) => n + e.targetSets, 0),
+    preview: day.exercises.slice(0, 3).map((e) => ({
+      name: e.name,
+      equipment: e.equipment,
+      targetSets: e.targetSets,
+    })),
+    moreNames: day.exercises.slice(3).map((e) => e.name),
+  };
+}
 
 // Display unit is the app default until the Settings units toggle / profile is wired.
 const UNIT = 'lb';
@@ -26,6 +48,8 @@ const UNIT = 'lb';
 /** Home tab (§2.1): the landing after launch, one tap into today's session. */
 export default function HomeScreen() {
   const { state, refetch } = useHomeData();
+  useRoutines(); // subscribe so "Up next" reacts to current-program / rotation changes
+  const next = currentNextDay();
   const today = new Date();
 
   return (
@@ -44,35 +68,41 @@ export default function HomeScreen() {
       {state.status === 'empty' ? (
         <QuickStartCard
           title="Start your first workout"
-          subtitle="Pick a routine or jump straight in."
-          pickLabel="Browse routines"
+          subtitle="Adopt a program, or jump straight in."
+          pickLabel="Browse programs"
         />
       ) : null}
 
       {state.status === 'error' ? (
         <>
           <ErrorBanner onRetry={refetch} />
-          {state.cached ? <HomeContent data={state.cached} /> : null}
+          {state.cached ? <HomeContent data={state.cached} next={next} /> : null}
         </>
       ) : null}
 
-      {state.status === 'ready' ? <HomeContent data={state.data} /> : null}
+      {state.status === 'ready' ? <HomeContent data={state.data} next={next} /> : null}
     </ScreenScaffold>
   );
 }
 
 /* ------------------------------ populated body ----------------------------- */
 
-function HomeContent({ data }: { data: HomeData }) {
+function HomeContent({
+  data,
+  next,
+}: {
+  data: HomeData;
+  next: { program: Program; day: ProgramDay } | null;
+}) {
   return (
     <>
-      {data.upNext ? (
-        <UpNextCard upNext={data.upNext} />
+      {next ? (
+        <UpNextCard upNext={buildUpNext(next.program, next.day)} dayId={next.day.id} />
       ) : (
         <QuickStartCard
-          title="Start an empty workout"
-          subtitle="You don't have a routine yet."
-          pickLabel="Pick a routine"
+          title="Start a workout"
+          subtitle="Adopt a program for a guided daily plan."
+          pickLabel="Browse programs"
         />
       )}
 
@@ -91,7 +121,7 @@ function HomeContent({ data }: { data: HomeData }) {
   );
 }
 
-function UpNextCard({ upNext }: { upNext: HomeUpNext }) {
+function UpNextCard({ upNext, dayId }: { upNext: HomeUpNext; dayId: string }) {
   const router = useRouter();
   const more =
     upNext.moreNames.length > 0
@@ -131,7 +161,7 @@ function UpNextCard({ upNext }: { upNext: HomeUpNext }) {
 
       <Button
         label="Start workout"
-        onPress={() => router.push('/workout/active')}
+        onPress={() => router.push({ pathname: '/workout/active', params: { dayId } })}
         icon={<Play size={18} color={colors.textOnAccent} weight="fill" />}
         style={styles.startButton}
       />
@@ -139,7 +169,7 @@ function UpNextCard({ upNext }: { upNext: HomeUpNext }) {
   );
 }
 
-/** Quick-start prompt — covers both the empty (new user) and no-routine variants. */
+/** Quick-start prompt — shown when there's no current program. */
 function QuickStartCard({
   title,
   subtitle,

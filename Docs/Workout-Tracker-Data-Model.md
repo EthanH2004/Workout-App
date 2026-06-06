@@ -49,6 +49,7 @@ Mirrors `auth.users` one-to-one; created on signup via a trigger.
 | `id` | uuid PK | Equals `auth.users.id` |
 | `display_name` | text null | |
 | `unit_preference` | text | `'lb'` or `'kg'`, default `'lb'` (PRD default) |
+| `current_program_id` | uuid null FK→`routines` | **TODO (program model):** the user's one active program — drives Home "Up next" and the Start FAB. `null` = no current program. Set on adopt/create. |
 
 ### 3.2 `exercises`
 The catalog. Built-in rows seeded from an open exercise dataset; custom rows owned by a user.
@@ -69,6 +70,8 @@ A training plan owned by a user. Prebuilt standard routines are **copied** into 
 | `owner_id` | uuid | |
 | `name` | text | e.g. "Push / Pull / Legs" |
 | `position` | int | Ordering in the user's routine list |
+
+> **Program model (TODO):** a "program" is exactly this `routines` row + its `routine_days`. The app needs a single **current program** (see `profiles.current_program_id`) and a **next-day pointer** for the Home rotation. Track the next day either as a `next_day_index` (on `profiles` or the program) or derive it from the most recent `workout_sessions.routine_day_id` — advancing after each finished workout. The mock store implements this in memory today.
 
 ### 3.4 `routine_days`
 A named day within a routine (Push, Pull, Legs). A single-day plan (Full Body) just has one.

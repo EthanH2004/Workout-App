@@ -8,6 +8,7 @@
 import { lbToKg } from '../../utils/units';
 import { uuid } from '../../utils/uuid';
 import type { Equipment } from '../../components/EquipmentIcon';
+import type { Program, ProgramDay } from '../routines/routinesStore';
 
 export interface ActiveSet {
   id: string;
@@ -95,6 +96,42 @@ export function createMockSession(): ActiveSession {
 /** A freestyle session with no exercises yet (empty state). */
 export function createEmptySession(): ActiveSession {
   return { id: uuid(), dayName: 'Quick workout', groupName: null, exercises: [] };
+}
+
+// Mock "last time" history keyed by exercise name — drives ghost targets + PR
+// chips when a session is launched from a program day (until real history exists).
+const MOCK_HISTORY: Record<string, { dateLabel: string; weightKg: number; reps: number; prLive?: boolean }> = {
+  'Barbell bench press': { dateLabel: 'Jun 1', weightKg: lbToKg(135), reps: 8, prLive: true },
+  'Incline dumbbell press': { dateLabel: 'Jun 1', weightKg: lbToKg(60), reps: 10 },
+  'Seated shoulder press': { dateLabel: 'May 28', weightKg: lbToKg(45), reps: 10 },
+  'Cable fly': { dateLabel: 'May 28', weightKg: lbToKg(35), reps: 12 },
+  'Triceps pushdown': { dateLabel: 'May 28', weightKg: lbToKg(50), reps: 12 },
+  'Back squat': { dateLabel: 'Jun 2', weightKg: lbToKg(225), reps: 5 },
+  Deadlift: { dateLabel: 'May 31', weightKg: lbToKg(275), reps: 5 },
+  'Barbell row': { dateLabel: 'May 31', weightKg: lbToKg(155), reps: 8 },
+  'Romanian deadlift': { dateLabel: 'Jun 2', weightKg: lbToKg(185), reps: 10 },
+  'Overhead press': { dateLabel: 'May 28', weightKg: lbToKg(95), reps: 8 },
+};
+
+/** Build an active session from a program day (the launched routine). */
+export function createSessionFromDay(program: Program, day: ProgramDay): ActiveSession {
+  return {
+    id: uuid(),
+    dayName: day.name,
+    groupName: program.name,
+    exercises: day.exercises.map((e) => {
+      const hist = MOCK_HISTORY[e.name];
+      return {
+        id: uuid(),
+        exerciseId: e.exerciseId,
+        name: e.name,
+        equipment: e.equipment,
+        prLive: hist?.prLive ?? false,
+        lastTime: hist ? { dateLabel: hist.dateLabel, weightKg: hist.weightKg, reps: hist.reps } : null,
+        sets: Array.from({ length: Math.max(1, e.targetSets) }, (_, i) => set(i + 1, null, null, false)),
+      };
+    }),
+  };
 }
 
 /* -------------------------------- reducer --------------------------------- */

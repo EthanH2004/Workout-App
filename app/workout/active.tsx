@@ -7,7 +7,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { CaretDown, Clock, Plus } from 'phosphor-react-native';
 import {
@@ -27,6 +27,7 @@ import {
   allSetsComplete,
   createEmptySession,
   createMockSession,
+  createSessionFromDay,
   firstIncompleteSetId,
   hasLoggedSets,
   type ActiveExercise,
@@ -35,6 +36,7 @@ import {
 } from '../../src/features/workout/activeWorkoutData';
 import { NumberPadSheet } from '../../src/features/workout/NumberPadSheet';
 import { requestExercises } from '../../src/features/exercises/pickerHandoff';
+import { advanceCurrentDay, findDay } from '../../src/features/routines/routinesStore';
 
 const UNIT = 'lb';
 const WEIGHT_LABEL = 'Lbs';
@@ -73,10 +75,15 @@ function padPrefill(s: ActiveSet, lastTime: LastTime | null) {
 /** Active workout (§2.2): full-screen logging loop, no tab bar. */
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
-  const [session, dispatch] = useReducer(
-    activeReducer,
-    FORCE_VARIANT === 'empty' ? createEmptySession() : createMockSession(),
-  );
+  const { dayId } = useLocalSearchParams<{ dayId?: string }>();
+  const [session, dispatch] = useReducer(activeReducer, undefined, () => {
+    if (FORCE_VARIANT === 'empty') return createEmptySession();
+    if (dayId) {
+      const found = findDay(dayId);
+      if (found) return createSessionFromDay(found.program, found.day);
+    }
+    return createMockSession();
+  });
 
   const startRef = useRef(Date.now());
   const [elapsed, setElapsed] = useState(0);
@@ -179,7 +186,10 @@ export default function ActiveWorkoutScreen() {
   }
 
   // TODO(§ summary): Finish writes PRs + shows the summary screen.
-  const handleFinish = () => router.back();
+  function handleFinish() {
+    advanceCurrentDay(); // mock rotation: next time, the program's next day is up
+    router.back();
+  }
 
   const header = (
     <GestureDetector gesture={dragToDismiss}>
