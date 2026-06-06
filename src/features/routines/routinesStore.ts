@@ -1,12 +1,18 @@
 /**
- * Routines mock store — shaped to the Supabase hierarchy
- * (routines = group → routine_days = day → routine_day_exercises). In-memory and
- * reactive via useSyncExternalStore so the Routines tab and the Builder share one
- * source of truth; array order stands in for the `position` column. Swap for
- * TanStack Query + queries.ts when persistence lands.
+ * Programs mock store — shaped to the Supabase hierarchy
+ * (routines = program → routine_days = day → routine_day_exercises). In-memory
+ * and reactive via useSyncExternalStore so every screen shares one source of
+ * truth; array order stands in for the `position` column.
  *
- * Naming mirrors the Home mock (Push Pull Legs → Push/Pull/Leg day) so the two
- * screens stay consistent.
+ * Program model: the user has a library of programs and exactly ONE "current"
+ * program (`currentProgramId`). `nextDayIndex` mocks the rotation through the
+ * current program's days (advances after each finished workout).
+ *
+ * DATA-MODEL NOTE: persisting this needs a current-program flag — add
+ * `profiles.current_program_id` (+ a per-program `next_day_index` or derive the
+ * next day from the latest session). See Workout-Tracker-Data-Model.md.
+ *
+ * Naming mirrors the Home mock (Push Pull Legs → Push/Pull/Leg day).
  */
 import { useSyncExternalStore } from 'react';
 import type { Equipment } from '../../components/EquipmentIcon';
@@ -21,19 +27,19 @@ export interface DayExercise {
   targetReps: number;
 }
 
-export interface RoutineDay {
+export interface ProgramDay {
   id: string; // routine_day id
   name: string;
   exercises: DayExercise[];
 }
 
-export interface RoutineGroup {
+export interface Program {
   id: string; // routines id
   name: string;
-  days: RoutineDay[];
+  days: ProgramDay[];
 }
 
-/** What the Builder hands back on save (ids assigned by the store). */
+/** What the Day editor hands back on save (ids assigned by the store). */
 export interface DayExerciseInput {
   exerciseId: string;
   name: string;
@@ -53,13 +59,13 @@ function dayEx(name: string, equipment: Equipment, sets: number, reps: number): 
   return { id: uuid(), exerciseId: slug(name), name, equipment, targetSets: sets, targetReps: reps };
 }
 
-function makeDay(name: string, exercises: DayExercise[]): RoutineDay {
+function makeDay(name: string, exercises: DayExercise[]): ProgramDay {
   return { id: uuid(), name, exercises };
 }
 
 /* ---------------------------------- seed ---------------------------------- */
 
-const PPL: RoutineGroup = {
+const PPL: Program = {
   id: uuid(),
   name: 'Push Pull Legs',
   days: [
@@ -89,7 +95,7 @@ const PPL: RoutineGroup = {
   ],
 };
 
-/* -------------------------------- templates ------------------------------- */
+/* ------------------------------- templates -------------------------------- */
 
 interface TemplateExercise {
   name: string;
@@ -195,16 +201,63 @@ export const TEMPLATES: RoutineTemplate[] = [
       },
     ],
   },
+  {
+    id: 'tmpl-ppl',
+    name: 'Push Pull Legs',
+    meta: '6 days/week · advanced',
+    equipment: 'barbell',
+    days: [
+      {
+        name: 'Push',
+        exercises: [
+          tex('Barbell bench press', 'barbell', 4, 8),
+          tex('Overhead press', 'barbell', 3, 10),
+          tex('Incline dumbbell press', 'dumbbell', 3, 10),
+          tex('Cable fly', 'cable', 3, 12),
+          tex('Triceps pushdown', 'cable', 3, 12),
+        ],
+      },
+      {
+        name: 'Pull',
+        exercises: [
+          tex('Deadlift', 'barbell', 3, 5),
+          tex('Barbell row', 'barbell', 4, 8),
+          tex('Lat pulldown', 'cable', 3, 12),
+          tex('Seated cable row', 'cable', 3, 10),
+          tex('Barbell curl', 'barbell', 3, 12),
+        ],
+      },
+      {
+        name: 'Legs',
+        exercises: [
+          tex('Back squat', 'barbell', 4, 8),
+          tex('Romanian deadlift', 'barbell', 3, 10),
+          tex('Leg press', 'machine', 3, 12),
+          tex('Leg curl', 'machine', 3, 12),
+          tex('Standing calf raise', 'machine', 4, 15),
+        ],
+      },
+    ],
+  },
 ];
 
 /* -------------------------------- the store ------------------------------- */
 
-let state: { groups: RoutineGroup[] } = { groups: [PPL] };
+interface StoreState {
+  programs: Program[];
+  currentProgramId: string | null;
+  nextDayIndex: number; // rotation pointer into the current program's days
+}
+
+let state: StoreState = { programs: [PPL], currentProgramId: PPL.id, nextDayIndex: 0 };
 const listeners = new Set<() => void>();
 
 function emit() {
-  state = { ...state };
   listeners.forEach((l) => l());
+}
+function set(next: StoreState) {
+  state = next;
+  emit();
 }
 function subscribe(cb: () => void) {
   listeners.add(cb);
@@ -214,18 +267,45 @@ function getSnapshot() {
   return state;
 }
 
-/** Reactive list of routine groups. */
-export function useRoutineGroups(): RoutineGroup[] {
-  return useSyncExternalStore(subscribe, getSnapshot).groups;
+/** Reactive snapshot of the whole routines state. */
+export function useRoutines(): StoreState {
+  return useSyncExternalStore(subscribe, getSnapshot);
 }
 
-export function findDay(dayId: string): { group: RoutineGroup; day: RoutineDay } | null {
-  for (const group of state.groups) {
-    for (const day of group.days) {
-      if (day.id === dayId) return { group, day };
+/* ------------------------------- selectors -------------------------------- */
+
+export function findProgram(programId: string): Program | null {
+  return state.programs.find((p) => p.id === programId) ?? null;
+}
+
+export function findDay(dayId: string): { program: Program; day: ProgramDay } | null {
+  for (const program of state.programs) {
+    for (const day of program.days) {
+      if (day.id === dayId) return { program, day };
     }
   }
   return null;
+}
+
+export function currentProgram(): Program | null {
+  return state.currentProgramId ? findProgram(state.currentProgramId) : null;
+}
+
+export function programExerciseCount(program: Program): number {
+  return program.days.reduce((n, d) => n + d.exercises.length, 0);
+}
+
+/* ------------------------------- mutations -------------------------------- */
+
+export function setCurrentProgram(programId: string): void {
+  set({ ...state, currentProgramId: programId, nextDayIndex: 0 });
+}
+
+export function deleteProgram(programId: string): void {
+  const programs = state.programs.filter((p) => p.id !== programId);
+  const currentProgramId =
+    state.currentProgramId === programId ? (programs[0]?.id ?? null) : state.currentProgramId;
+  set({ programs, currentProgramId, nextDayIndex: 0 });
 }
 
 function toDayExercise(input: DayExerciseInput): DayExercise {
@@ -234,50 +314,60 @@ function toDayExercise(input: DayExerciseInput): DayExercise {
 
 /** Update an existing day's name + exercises in place. */
 export function updateDay(dayId: string, input: SaveDayInput): void {
-  state = {
-    groups: state.groups.map((g) => ({
-      ...g,
-      days: g.days.map((d) =>
+  set({
+    ...state,
+    programs: state.programs.map((p) => ({
+      ...p,
+      days: p.days.map((d) =>
         d.id === dayId ? { ...d, name: input.name, exercises: input.exercises.map(toDayExercise) } : d,
       ),
     })),
-  };
-  emit();
+  });
 }
 
-/** Create a new standalone routine (a one-day group). */
-export function createRoutine(input: SaveDayInput): { dayId: string } {
-  const day: RoutineDay = { id: uuid(), name: input.name, exercises: input.exercises.map(toDayExercise) };
-  const group: RoutineGroup = { id: uuid(), name: input.name, days: [day] };
-  state = { groups: [...state.groups, group] };
-  emit();
-  return { dayId: day.id };
-}
-
-/** Copy-on-adopt (data-model D2): clone a template into the user's routines. */
-export function cloneTemplate(templateId: string): { firstDayId: string } | null {
+/** Copy-on-adopt (D2): clone a template into the library and make it current. */
+export function adoptTemplate(templateId: string): { programId: string; firstDayId: string } | null {
   const template = TEMPLATES.find((t) => t.id === templateId);
   if (!template) return null;
-  const days: RoutineDay[] = template.days.map((td) => ({
-    id: uuid(),
-    name: td.name,
-    exercises: td.exercises.map((e) =>
-      toDayExercise({
-        exerciseId: slug(e.name),
-        name: e.name,
-        equipment: e.equipment,
-        targetSets: e.targetSets,
-        targetReps: e.targetReps,
-      }),
+  const days: ProgramDay[] = template.days.map((td) =>
+    makeDay(
+      td.name,
+      td.exercises.map((e) =>
+        toDayExercise({
+          exerciseId: slug(e.name),
+          name: e.name,
+          equipment: e.equipment,
+          targetSets: e.targetSets,
+          targetReps: e.targetReps,
+        }),
+      ),
     ),
-  }));
-  const group: RoutineGroup = { id: uuid(), name: template.name, days };
-  state = { groups: [...state.groups, group] };
-  emit();
-  return { firstDayId: days[0].id };
+  );
+  const program: Program = { id: uuid(), name: template.name, days };
+  set({ programs: [...state.programs, program], currentProgramId: program.id, nextDayIndex: 0 });
+  return { programId: program.id, firstDayId: days[0].id };
 }
 
-/** Total exercises across a group's days. */
-export function groupExerciseCount(group: RoutineGroup): number {
-  return group.days.reduce((n, d) => n + d.exercises.length, 0);
+/** Create an empty program. Becomes current if the library was empty. */
+export function createProgram(name: string): { programId: string } {
+  const program: Program = { id: uuid(), name: name.trim() || 'New program', days: [] };
+  set({
+    programs: [...state.programs, program],
+    currentProgramId: state.currentProgramId ?? program.id,
+    nextDayIndex: 0,
+  });
+  return { programId: program.id };
+}
+
+// TODO(Part 3): retire once new days are created via the Program editor.
+/** Interim: create a one-day program from the Day editor's "new" mode. */
+export function createRoutine(input: SaveDayInput): { dayId: string } {
+  const day: ProgramDay = { id: uuid(), name: input.name, exercises: input.exercises.map(toDayExercise) };
+  const program: Program = { id: uuid(), name: input.name, days: [day] };
+  set({
+    programs: [...state.programs, program],
+    currentProgramId: state.currentProgramId ?? program.id,
+    nextDayIndex: 0,
+  });
+  return { dayId: day.id };
 }
