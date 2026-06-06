@@ -436,6 +436,34 @@ export async function fetchHomeSessions(limit = 30): Promise<HomeSessionRow[]> {
   return (data ?? []) as unknown as HomeSessionRow[];
 }
 
+/** A session reduced to what Progress/Exercise-detail need: date + per-exercise sets. */
+export interface ProgressSessionRow {
+  started_at: string;
+  session_exercises: {
+    exercise_id: string;
+    exercise_name: string;
+    session_sets: { weight_kg: number | null; reps: number | null; completed: boolean }[];
+  }[];
+}
+
+/**
+ * The user's sessions (RLS-scoped) for progress charts — every exercise's id +
+ * name + sets, so e1RM / volume / heaviest trends are derived on the client.
+ * Newest-first (capped); the hook reverses to oldest→newest for trend building.
+ */
+export async function fetchProgressSessions(): Promise<ProgressSessionRow[]> {
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select(
+      'started_at, session_exercises(exercise_id, exercise_name, session_sets(weight_kg, reps, completed))',
+    )
+    .is('deleted_at', null)
+    .order('started_at', { ascending: false })
+    .limit(400);
+  if (error) throw error;
+  return (data ?? []) as unknown as ProgressSessionRow[];
+}
+
 /** Read the signed-in user's profile row (created by the signup trigger). */
 export async function fetchProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase

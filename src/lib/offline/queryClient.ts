@@ -53,9 +53,11 @@ queryClient.setMutationDefaults(['programs', 'mutate'], {
 queryClient.setMutationDefaults(['sessions', 'save'], {
   mutationFn: (vars: SaveSessionInput) => insertSession(vars),
   // Defined here (not on the component's useMutation) so it still fires after the
-  // Active Workout screen unmounts on finish, refreshing Home's live queries.
+  // Active Workout screen unmounts on finish, refreshing the session-derived
+  // screens (Home, Progress, Exercise detail).
   onSettled: () => {
     queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    queryClient.invalidateQueries({ queryKey: ['progress-sessions'] });
   },
 });
 

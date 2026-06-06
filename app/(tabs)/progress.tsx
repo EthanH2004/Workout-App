@@ -7,6 +7,7 @@ import { colors, fontFamily, layout, radius, spacing } from '../../src/theme/tok
 import {
   progressLifts,
   RANGES,
+  useProgress,
   weeklyVolume,
   type ProgressLiftRow,
   type Range,
@@ -14,21 +15,12 @@ import {
 import { BarChart, Sparkline } from '../../src/features/progress/ProgressCharts';
 import { useUnit } from '../../src/features/settings/settingsStore';
 
-// Preview empty / thin / loading / error on the simulator; null = populated.
-const FORCE_STATE: 'empty' | 'thin' | 'loading' | 'error' | null = null;
-
 /** Progress tab (§2.7): the calm gallery of gains. */
 export default function ProgressScreen() {
   const router = useRouter();
   const unit = useUnit();
   const [range, setRange] = useState<Range>('3M');
-
-  const vol = weeklyVolume(range, unit);
-  const thin = FORCE_STATE === 'thin';
-  const lifts = progressLifts(unit).map((l) =>
-    thin ? { ...l, thin: true, deltaLb: 0, sparkline: l.sparkline.slice(-1) } : l,
-  );
-  const bars = thin ? vol.bars.slice(-1) : vol.bars;
+  const { state, refetch } = useProgress();
 
   const openLift = (id: string) => router.push({ pathname: '/exercise-detail', params: { id } });
 
@@ -38,7 +30,7 @@ export default function ProgressScreen() {
     </View>
   );
 
-  if (FORCE_STATE === 'loading') {
+  if (state.status === 'loading') {
     return (
       <ScreenScaffold>
         {nav}
@@ -49,7 +41,16 @@ export default function ProgressScreen() {
     );
   }
 
-  if (FORCE_STATE === 'empty') {
+  if (state.status === 'error') {
+    return (
+      <ScreenScaffold>
+        {nav}
+        <ErrorBanner onRetry={refetch} />
+      </ScreenScaffold>
+    );
+  }
+
+  if (state.status === 'empty') {
     return (
       <ScreenScaffold>
         {nav}
@@ -60,11 +61,12 @@ export default function ProgressScreen() {
     );
   }
 
+  const vol = weeklyVolume(state.sessionVolumes, range, unit);
+  const lifts = progressLifts(state.lifts, unit);
+
   return (
     <ScreenScaffold>
       {nav}
-
-      {FORCE_STATE === 'error' ? <ErrorBanner /> : null}
 
       <SectionLabel style={styles.volLabel}>Total volume · weekly</SectionLabel>
       <Card>
@@ -81,7 +83,7 @@ export default function ProgressScreen() {
         >
           {`${vol.deltaPct >= 0 ? '+' : ''}${vol.deltaPct}% vs last month`}
         </Text>
-        <BarChart values={bars} />
+        <BarChart values={vol.bars} />
         <RangeChips options={RANGES} value={range} onChange={setRange} style={styles.range} />
       </Card>
 
@@ -129,13 +131,13 @@ function LiftRow({
   );
 }
 
-function ErrorBanner() {
+function ErrorBanner({ onRetry }: { onRetry: () => void }) {
   return (
     <View style={styles.banner}>
       <Text variant="caption" color="textSecondary" style={styles.flex}>
-        Couldn't refresh
+        Couldn't load your progress
       </Text>
-      <Pressable accessibilityRole="button" onPress={() => {}} hitSlop={spacing[2]}>
+      <Pressable accessibilityRole="button" onPress={onRetry} hitSlop={spacing[2]}>
         <Text variant="caption" color="accentText">
           Retry
         </Text>

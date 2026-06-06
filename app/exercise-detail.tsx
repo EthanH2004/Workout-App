@@ -17,6 +17,7 @@ import {
   liftDetail,
   METRIC_LABEL,
   RANGES,
+  useLiftDetail,
   type Metric,
   type Range,
 } from '../src/features/progress/progressData';
@@ -29,9 +30,6 @@ const METRIC_OPTIONS: { label: string; value: Metric }[] = [
   { label: 'Heaviest', value: 'heaviest' },
 ];
 
-// Preview loading / empty / thin on the simulator; null = populated.
-const FORCE_STATE: 'loading' | 'empty' | 'thin' | null = null;
-
 /** Exercise detail (§2.8): one lift's trend over time, Apple-Stocks feel. */
 export default function ExerciseDetailScreen() {
   const router = useRouter();
@@ -40,12 +38,9 @@ export default function ExerciseDetailScreen() {
   const [metric, setMetric] = useState<Metric>('e1rm');
   const [range, setRange] = useState<Range>('3M');
   const [scrub, setScrub] = useState<number | null>(null);
+  const { state, refetch } = useLiftDetail(id);
 
-  const base = id ? liftDetail(id, metric, range, unit) : null;
-  const detail =
-    base && FORCE_STATE === 'thin'
-      ? { ...base, points: base.points.slice(-1), delta: 0, thin: true }
-      : base;
+  const detail = state.status === 'ready' ? liftDetail(state.lift, metric, range, unit) : null;
 
   const resetScrub = () => setScrub(null);
   const changeMetric = (m: Metric) => {
@@ -71,21 +66,43 @@ export default function ExerciseDetailScreen() {
     </View>
   );
 
-  if (FORCE_STATE === 'empty' || !detail) {
+  if (state.status === 'loading') {
+    return (
+      <ScreenScaffold header={header}>
+        <View style={[styles.skeleton, { height: 44, marginTop: spacing[1] }]} />
+        <View style={[styles.skeleton, { height: 176, marginTop: spacing[4] }]} />
+      </ScreenScaffold>
+    );
+  }
+
+  if (state.status === 'error') {
+    return (
+      <ScreenScaffold header={header}>
+        <View style={styles.errorBlock}>
+          <Text variant="body" color="textSecondary" style={styles.errorText}>
+            Couldn't load this exercise.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={refetch}
+            hitSlop={spacing[2]}
+            style={styles.retry}
+          >
+            <Text variant="bodyStrong" color="accentText">
+              Retry
+            </Text>
+          </Pressable>
+        </View>
+      </ScreenScaffold>
+    );
+  }
+
+  if (state.status === 'empty' || !detail) {
     return (
       <ScreenScaffold header={header}>
         <Text variant="body" color="textSecondary" style={styles.empty}>
           No history yet — log this exercise to see its trend.
         </Text>
-      </ScreenScaffold>
-    );
-  }
-
-  if (FORCE_STATE === 'loading') {
-    return (
-      <ScreenScaffold header={header}>
-        <View style={[styles.skeleton, { height: 44, marginTop: spacing[1] }]} />
-        <View style={[styles.skeleton, { height: 176, marginTop: spacing[4] }]} />
       </ScreenScaffold>
     );
   }
@@ -257,6 +274,16 @@ const styles = StyleSheet.create({
   empty: {
     marginTop: spacing[8],
     textAlign: 'center',
+  },
+  errorBlock: {
+    marginTop: spacing[8],
+    alignItems: 'center',
+  },
+  errorText: {
+    textAlign: 'center',
+  },
+  retry: {
+    marginTop: spacing[3],
   },
   skeleton: {
     backgroundColor: colors.surfaceRaised,
