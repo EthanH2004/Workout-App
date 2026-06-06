@@ -464,6 +464,61 @@ export async function fetchProgressSessions(): Promise<ProgressSessionRow[]> {
   return (data ?? []) as unknown as ProgressSessionRow[];
 }
 
+/* ----------------------------- account / export -------------------------- */
+
+/**
+ * Permanently delete the signed-in user's account + all their data. Calls the
+ * security-definer delete_user() RPC, which is scoped to auth.uid() server-side
+ * (no service-role key on the client). The local session is cleared by the caller.
+ */
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.rpc('delete_user');
+  if (error) throw error;
+}
+
+/** A full, JSON-serializable dump of everything the user owns (for data export). */
+export async function fetchExportData(userId: string): Promise<Record<string, unknown>> {
+  const [profile, routines, days, dayExercises, sessions, sessionExercises, sessionSets, customExercises] =
+    await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('routines').select('*'),
+      supabase.from('routine_days').select('*'),
+      supabase.from('routine_day_exercises').select('*'),
+      supabase.from('workout_sessions').select('*'),
+      supabase.from('session_exercises').select('*'),
+      supabase.from('session_sets').select('*'),
+      supabase.from('exercises').select('*').eq('owner_id', userId), // customs only (globals: owner_id null)
+    ]);
+  for (const res of [
+    profile,
+    routines,
+    days,
+    dayExercises,
+    sessions,
+    sessionExercises,
+    sessionSets,
+    customExercises,
+  ]) {
+    if (res.error) throw res.error;
+  }
+  return {
+    app: 'Workout Tracker',
+    exportedAt: new Date().toISOString(),
+    profile: profile.data,
+    programs: {
+      routines: routines.data ?? [],
+      days: days.data ?? [],
+      exercises: dayExercises.data ?? [],
+    },
+    sessions: {
+      workouts: sessions.data ?? [],
+      exercises: sessionExercises.data ?? [],
+      sets: sessionSets.data ?? [],
+    },
+    customExercises: customExercises.data ?? [],
+  };
+}
+
 /** Read the signed-in user's profile row (created by the signup trigger). */
 export async function fetchProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase

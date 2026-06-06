@@ -6,17 +6,18 @@ import { SUPPORT_EMAIL } from '../../src/config/links';
 import { Card, ScreenScaffold, SectionLabel, StatCard, Text } from '../../src/components';
 import { colors, layout, radius, spacing } from '../../src/theme/tokens';
 import { toDisplayInt } from '../../src/utils/units';
-import { formatCompact, formatMonthYear } from '../../src/utils/format';
+import { formatCompact, formatMonthYear, groupThousands } from '../../src/utils/format';
 import { useUnit } from '../../src/features/settings/settingsStore';
 import { useAuth } from '../../src/features/auth/AuthProvider';
 import { useProfile } from '../../src/hooks/useProfile';
+import {
+  useExportData,
+  useLifetimeStats,
+  type PrRecord,
+} from '../../src/features/profile/profileData';
 
-// Preview new-user / loading / Apple-relay on the simulator; null = populated.
-const FORCE_STATE: 'new' | 'loading' | 'apple' | null = null;
-
-// Lifetime stats — MOCK, aggregated from workout_sessions/session_sets in reality.
-const MOCK_STATS = { workouts: 142, totalVolumeKg: 952544, prs: 38, hours: 96 };
-const NEW_STATS = { workouts: 0, totalVolumeKg: 0, prs: 0, hours: 0 };
+const ZERO_STATS = { workouts: 0, totalVolumeKg: 0, totalSets: 0, prs: 0 };
+const PR_LIMIT = 8; // top lifts on the Profile; full history lives in Progress
 
 const isAppleRelay = (email: string) => email.includes('privaterelay.appleid.com');
 
@@ -26,9 +27,6 @@ function deriveName(email: string): string {
   return first.charAt(0).toUpperCase() + first.slice(1);
 }
 
-const comingSoon = () =>
-  Alert.alert('Coming soon', 'This will be available in a future update.');
-
 function emailSupport() {
   const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Workout Tracker feedback')}`;
   Linking.openURL(url).catch(() =>
@@ -36,18 +34,16 @@ function emailSupport() {
   );
 }
 
-/** Profile tab (§2.9): identity, lifetime stats, account links. */
+/** Profile tab (§2.9): identity, lifetime stats, personal records, account. */
 export default function ProfileScreen() {
   const router = useRouter();
   const { session, signOut } = useAuth();
   const { data: profile } = useProfile();
   const unit = useUnit();
+  const { state, refetch } = useLifetimeStats();
+  const { exportData } = useExportData();
 
-  const isNew = FORCE_STATE === 'new';
-  const stats = isNew ? NEW_STATS : MOCK_STATS;
-
-  const rawEmail =
-    FORCE_STATE === 'apple' ? 'a1b2c3@privaterelay.appleid.com' : (session?.user.email ?? '—');
+  const rawEmail = session?.user.email ?? '—';
   const displayEmail = isAppleRelay(rawEmail) ? 'Apple ID' : rawEmail;
   const name = profile?.display_name || deriveName(rawEmail);
   const createdAt = profile?.created_at ?? session?.user.created_at;
@@ -74,7 +70,7 @@ export default function ProfileScreen() {
     </View>
   );
 
-  if (FORCE_STATE === 'loading') {
+  if (state.status === 'loading') {
     return (
       <ScreenScaffold>
         {nav}
@@ -90,6 +86,28 @@ export default function ProfileScreen() {
       </ScreenScaffold>
     );
   }
+
+  if (state.status === 'error') {
+    return (
+      <ScreenScaffold>
+        {nav}
+        <View style={styles.errorBlock}>
+          <Text variant="body" color="textSecondary" style={styles.errorText}>
+            Couldn't load your profile.
+          </Text>
+          <Pressable accessibilityRole="button" onPress={refetch} hitSlop={spacing[2]} style={styles.retry}>
+            <Text variant="bodyStrong" color="accentText">
+              Retry
+            </Text>
+          </Pressable>
+        </View>
+      </ScreenScaffold>
+    );
+  }
+
+  const isEmpty = state.status === 'empty';
+  const stats = isEmpty ? ZERO_STATS : state.stats;
+  const prs = isEmpty ? [] : state.prs.slice(0, PR_LIMIT);
 
   return (
     <ScreenScaffold>
@@ -120,13 +138,30 @@ export default function ProfileScreen() {
       </View>
       <View style={styles.statGrid}>
         <StatCard label="Personal records" value={stats.prs} style={styles.statItem} />
-        <StatCard label="Hours trained" value={stats.hours} style={styles.statItem} />
+        <StatCard label="Total sets" value={stats.totalSets} style={styles.statItem} />
       </View>
 
-      {isNew ? (
+      {isEmpty ? (
         <Text variant="caption" color="textSecondary" style={styles.nudge}>
           Log your first workout to start building your stats.
         </Text>
+      ) : null}
+
+      {prs.length > 0 ? (
+        <>
+          <SectionLabel style={styles.groupLabel}>Personal records</SectionLabel>
+          <Card padding={0} style={styles.group}>
+            {prs.map((pr, i) => (
+              <PrRow
+                key={pr.id}
+                pr={pr}
+                unit={unit}
+                first={i === 0}
+                onPress={() => router.push({ pathname: '/exercise-detail', params: { id: pr.id } })}
+              />
+            ))}
+          </Card>
+        </>
       ) : null}
 
       <SectionLabel style={styles.groupLabel}>Account</SectionLabel>
@@ -138,15 +173,9 @@ export default function ProfileScreen() {
           onPress={() => router.push('/settings')}
         />
         <ProfileRow
-          icon={<Medal size={20} color={colors.textSecondary} weight="regular" />}
-          label="Personal records"
-          value={String(stats.prs)}
-          onPress={comingSoon}
-        />
-        <ProfileRow
           icon={<DownloadSimple size={20} color={colors.textSecondary} weight="regular" />}
           label="Export data"
-          onPress={comingSoon}
+          onPress={exportData}
         />
         <ProfileRow
           icon={<Question size={20} color={colors.textSecondary} weight="regular" />}
@@ -165,6 +194,37 @@ export default function ProfileScreen() {
         </Text>
       </Pressable>
     </ScreenScaffold>
+  );
+}
+
+/** A personal-record row: exercise + best estimated 1RM in the violet PR color. */
+function PrRow({
+  pr,
+  unit,
+  first,
+  onPress,
+}: {
+  pr: PrRecord;
+  unit: ReturnType<typeof useUnit>;
+  first?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${pr.name} record`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, !first && styles.divider, pressed && styles.rowPressed]}
+    >
+      <Medal size={20} color={colors.textSecondary} weight="regular" />
+      <Text variant="bodyStrong" color="textPrimary" style={styles.flex} numberOfLines={1}>
+        {pr.name}
+      </Text>
+      <Text variant="bodyStrong" color="pr">
+        {`${groupThousands(toDisplayInt(pr.e1rmKg, unit))} ${unit}`}
+      </Text>
+      <CaretRight size={16} color={colors.textTertiary} weight="bold" />
+    </Pressable>
   );
 }
 
@@ -280,5 +340,15 @@ const styles = StyleSheet.create({
   skeleton: {
     backgroundColor: colors.surfaceRaised,
     borderRadius: radius.md,
+  },
+  errorBlock: {
+    marginTop: spacing[8],
+    alignItems: 'center',
+  },
+  errorText: {
+    textAlign: 'center',
+  },
+  retry: {
+    marginTop: spacing[3],
   },
 });

@@ -15,6 +15,9 @@ import type { ColorToken } from '../src/theme/tokens';
 import { colors, icon, layout, radius, spacing } from '../src/theme/tokens';
 import type { WeightUnit } from '../src/utils/units';
 import { useAuth } from '../src/features/auth/AuthProvider';
+import { useExportData } from '../src/features/profile/profileData';
+import { deleteAccount } from '../src/lib/supabase/queries';
+import { queryClient } from '../src/lib/offline/queryClient';
 import {
   setRestReminder,
   setSyncEnabled,
@@ -37,9 +40,6 @@ const SYNC_DISPLAY: Record<SyncState, { dot: ColorToken; text: string }> = {
   error: { dot: 'warning', text: "Couldn't sync" },
 };
 
-const comingSoon = () =>
-  Alert.alert('Coming soon', 'This will be available in a future update.');
-
 function openExternal(url: string) {
   Linking.openURL(url).catch(() => Alert.alert("Couldn't open link", 'Please try again later.'));
 }
@@ -47,12 +47,26 @@ function openExternal(url: string) {
 /** Settings (§2.10): preferences (units!), sync, account, about. No tab bar. */
 export default function SettingsScreen() {
   const router = useRouter();
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
   const settings = useSettings();
+  const { exportData } = useExportData();
 
   const email = session?.user.email ?? '—';
   const provider = session?.user.app_metadata?.provider === 'apple' ? 'Apple' : 'Email';
 
+  // Truly deletes the account + all data server-side (delete_user RPC), then
+  // clears the local session so the auth gate returns to Welcome.
+  async function runDelete() {
+    try {
+      await deleteAccount();
+      queryClient.clear(); // wipe the locally-cached copy of the now-deleted data
+      await signOut().catch(() => {}); // user is gone; ignore any revoke error
+    } catch {
+      Alert.alert("Couldn't delete account", 'Please try again or contact support.');
+    }
+  }
+
+  // Two-step + type-to-confirm (Apple Guideline 5.1.1): irreversible, so guard it.
   function confirmDelete() {
     Alert.alert(
       'Delete account?',
@@ -60,12 +74,25 @@ export default function SettingsScreen() {
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete account',
+          text: 'Continue',
           style: 'destructive',
-          // TODO: BEFORE App Store submission this MUST actually delete the Supabase
-          // auth user + all owned rows (sessions, routines, custom exercises), then
-          // sign out. Required by Apple Guideline 5.1.1 (account deletion).
-          onPress: comingSoon,
+          onPress: () =>
+            Alert.prompt(
+              'Type DELETE to confirm',
+              'This removes your account and every workout, program, and record. There is no undo.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete forever',
+                  style: 'destructive',
+                  onPress: (text?: string) => {
+                    if ((text ?? '').trim().toUpperCase() === 'DELETE') runDelete();
+                    else Alert.alert('Not deleted', 'Type DELETE to confirm account deletion.');
+                  },
+                },
+              ],
+              'plain-text',
+            ),
         },
       ],
     );
@@ -124,7 +151,7 @@ export default function SettingsScreen() {
             </Text>
           )}
         </Row>
-        <NavRow label="Export workout data" onPress={comingSoon} />
+        <NavRow label="Export workout data" onPress={exportData} />
       </Card>
 
       <SectionLabel style={styles.groupLabel}>Account</SectionLabel>
