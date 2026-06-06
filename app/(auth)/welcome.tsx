@@ -42,10 +42,7 @@ export default function Welcome() {
         <View style={styles.hero}>
           <BrandMark />
           <Text variant="displayL" style={styles.wordmark}>
-            LIFT
-          </Text>
-          <Text variant="overline" color="textTertiary" style={styles.tag}>
-            Working name · placeholder
+            Onset
           </Text>
           <Text variant="body" color="textSecondary" style={styles.tagline}>
             Log your lifts in seconds.{' '}
@@ -93,9 +90,6 @@ const styles = StyleSheet.create({
   },
   wordmark: {
     marginTop: spacing[6],
-  },
-  tag: {
-    marginTop: spacing[2],
   },
   tagline: {
     marginTop: spacing[4],
