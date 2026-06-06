@@ -397,16 +397,3 @@ export function createProgram(name: string): { programId: string } {
   });
   return { programId: program.id };
 }
-
-// TODO(Part 3): retire once new days are created via the Program editor.
-/** Interim: create a one-day program from the Day editor's "new" mode. */
-export function createRoutine(input: SaveDayInput): { dayId: string } {
-  const day: ProgramDay = { id: uuid(), name: input.name, exercises: input.exercises.map(toDayExercise) };
-  const program: Program = { id: uuid(), name: input.name, days: [day] };
-  set({
-    programs: [...state.programs, program],
-    currentProgramId: state.currentProgramId ?? program.id,
-    nextDayIndex: 0,
-  });
-  return { dayId: day.id };
-}

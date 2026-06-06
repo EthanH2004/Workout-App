@@ -1,18 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Alert, Pressable, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedReaction,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  type SharedValue,
-} from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { List, Minus, Plus } from 'phosphor-react-native';
 import {
   Button,
+  DraggableList,
   EquipmentIcon,
   Input,
   ScreenScaffold,
@@ -20,17 +13,13 @@ import {
   Text,
 } from '../src/components';
 import type { Equipment } from '../src/components';
-import { colors, elevation, layout, motion, radius, spacing } from '../src/theme/tokens';
+import { colors, layout, radius, spacing } from '../src/theme/tokens';
 import { uuid } from '../src/utils/uuid';
 import { requestExercises } from '../src/features/exercises/pickerHandoff';
-import {
-  createRoutine,
-  findDay,
-  updateDay,
-  type DayExerciseInput,
-} from '../src/features/routines/routinesStore';
+import { findDay, updateDay, type DayExerciseInput } from '../src/features/routines/routinesStore';
 
-const GAP = spacing[3];
+type PanGesture = ReturnType<typeof Gesture.Pan>;
+
 const DEFAULT_SETS = 3;
 const DEFAULT_REPS = 8;
 
@@ -49,19 +38,12 @@ const snapshot = (name: string, rows: EditRow[]) =>
     rows: rows.map((r) => ({ id: r.exerciseId, s: r.targetSets, r: r.targetReps })),
   });
 
-const listToObject = (rows: EditRow[]): Record<string, number> =>
-  rows.reduce<Record<string, number>>((acc, r, i) => {
-    acc[r.key] = i;
-    return acc;
-  }, {});
-
-/** Routine Builder (§2.5): create/edit a routine's name + per-exercise targets. */
-export default function RoutineBuilderScreen() {
+/** Day editor (§2.5 / program model): edit one program day's name + exercises. */
+export default function DayEditorScreen() {
   const router = useRouter();
   const { dayId } = useLocalSearchParams<{ dayId?: string }>();
-  const isEditing = !!dayId;
-
   const initial = useRef(dayId ? findDay(dayId) : null);
+
   const [name, setName] = useState(initial.current?.day.name ?? '');
   const [rows, setRows] = useState<EditRow[]>(() =>
     (initial.current?.day.exercises ?? []).map((e) => ({
@@ -73,10 +55,10 @@ export default function RoutineBuilderScreen() {
       targetReps: e.targetReps,
     })),
   );
-
   const baseline = useRef(snapshot(initial.current?.day.name ?? '', rows));
+
   const dirty = snapshot(name, rows) !== baseline.current;
-  const valid = name.trim().length > 0 && rows.length > 0;
+  const valid = name.trim().length > 0;
 
   function addExercises() {
     requestExercises((picked) => {
@@ -95,21 +77,18 @@ export default function RoutineBuilderScreen() {
     router.push('/exercise-picker');
   }
 
-  function step(key: string, field: 'targetSets' | 'targetReps', delta: number) {
+  const step = (key: string, field: 'targetSets' | 'targetReps', delta: number) =>
     setRows((prev) =>
       prev.map((r) => (r.key === key ? { ...r, [field]: Math.max(1, r[field] + delta) } : r)),
     );
-  }
 
-  function remove(key: string) {
-    setRows((prev) => prev.filter((r) => r.key !== key));
-  }
+  const remove = (key: string) => setRows((prev) => prev.filter((r) => r.key !== key));
 
-  function reorder(orderedKeys: string[]) {
-    setRows((prev) => orderedKeys.map((k) => prev.find((r) => r.key === k)).filter(Boolean) as EditRow[]);
-  }
+  const reorder = (keys: string[]) =>
+    setRows((prev) => keys.map((k) => prev.find((r) => r.key === k)).filter(Boolean) as EditRow[]);
 
   function save() {
+    if (!dayId) return;
     const exercises: DayExerciseInput[] = rows.map((r) => ({
       exerciseId: r.exerciseId,
       name: r.name,
@@ -117,8 +96,7 @@ export default function RoutineBuilderScreen() {
       targetSets: r.targetSets,
       targetReps: r.targetReps,
     }));
-    if (dayId) updateDay(dayId, { name: name.trim(), exercises });
-    else createRoutine({ name: name.trim(), exercises });
+    updateDay(dayId, { name: name.trim(), exercises });
     router.back();
   }
 
@@ -127,7 +105,7 @@ export default function RoutineBuilderScreen() {
       router.back();
       return;
     }
-    Alert.alert('Discard changes?', 'Your edits to this routine will be lost.', [
+    Alert.alert('Discard changes?', 'Your edits to this day will be lost.', [
       { text: 'Keep editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: () => router.back() },
     ]);
@@ -140,7 +118,7 @@ export default function RoutineBuilderScreen() {
           Cancel
         </Text>
       </Pressable>
-      <Text variant="headline">{isEditing ? 'Edit routine' : 'New routine'}</Text>
+      <Text variant="headline">Edit day</Text>
       <Pressable accessibilityRole="button" onPress={save} disabled={!valid} hitSlop={spacing[2]}>
         <Text variant="bodyStrong" color={valid ? 'accentText' : 'textDisabled'}>
           Save
@@ -149,16 +127,26 @@ export default function RoutineBuilderScreen() {
     </View>
   );
 
+  if (!dayId || !initial.current) {
+    return (
+      <ScreenScaffold header={header}>
+        <Text variant="body" color="textSecondary" style={styles.gone}>
+          This day is no longer available.
+        </Text>
+      </ScreenScaffold>
+    );
+  }
+
   return (
     <ScreenScaffold
       header={header}
-      footer={<Button label="Save routine" onPress={save} disabled={!valid} />}
+      footer={<Button label="Save day" onPress={save} disabled={!valid} />}
     >
       <Input
-        label="Routine name"
+        label="Day name"
         value={name}
         onChangeText={setName}
-        placeholder="Routine name"
+        placeholder="Day name"
         autoCapitalize="sentences"
       />
 
@@ -166,10 +154,17 @@ export default function RoutineBuilderScreen() {
 
       {rows.length === 0 ? (
         <Text variant="body" color="textSecondary" style={styles.emptyHint}>
-          Add your first exercise to build this routine.
+          Add your first exercise to build this day.
         </Text>
       ) : (
-        <DraggableExercises rows={rows} onReorder={reorder} onStep={step} onRemove={remove} />
+        <DraggableList
+          items={rows}
+          keyForItem={(r) => r.key}
+          onReorder={reorder}
+          renderContent={(row, drag) => (
+            <ExerciseCardInner row={row} drag={drag} onStep={step} onRemove={remove} />
+          )}
+        />
       )}
 
       <Button
@@ -183,154 +178,16 @@ export default function RoutineBuilderScreen() {
   );
 }
 
-/* ----------------------------- draggable list ----------------------------- */
+/* --------------------------------- pieces --------------------------------- */
 
-function objectMove(obj: Record<string, number>, from: number, to: number) {
-  'worklet';
-  const next: Record<string, number> = {};
-  for (const id in obj) {
-    if (obj[id] === from) next[id] = to;
-    else if (obj[id] === to) next[id] = from;
-    else next[id] = obj[id];
-  }
-  return next;
-}
-
-function orderFromPositions(positions: Record<string, number>) {
-  'worklet';
-  return Object.keys(positions).sort((a, b) => positions[a] - positions[b]);
-}
-
-function DraggableExercises({
-  rows,
-  onReorder,
-  onStep,
-  onRemove,
-}: {
-  rows: EditRow[];
-  onReorder: (keys: string[]) => void;
-  onStep: (key: string, field: 'targetSets' | 'targetReps', delta: number) => void;
-  onRemove: (key: string) => void;
-}) {
-  const [rowHeight, setRowHeight] = useState(0);
-  const positions = useSharedValue(listToObject(rows));
-
-  // Keep positions in sync with adds/removes/reorders.
-  useEffect(() => {
-    positions.value = listToObject(rows);
-  }, [rows, positions]);
-
-  function measure(e: LayoutChangeEvent) {
-    if (rowHeight === 0) setRowHeight(e.nativeEvent.layout.height + GAP);
-  }
-
-  // Until the first card is measured, render in normal flow (drag disabled).
-  if (rowHeight === 0) {
-    return (
-      <View>
-        {rows.map((row, i) => (
-          <View key={row.key} onLayout={i === 0 ? measure : undefined} style={styles.flowCard}>
-            <CardInner row={row} onStep={onStep} onRemove={onRemove} />
-          </View>
-        ))}
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ height: rows.length * rowHeight }}>
-      {rows.map((row) => (
-        <DragCard
-          key={row.key}
-          row={row}
-          count={rows.length}
-          rowHeight={rowHeight}
-          positions={positions}
-          onReorder={onReorder}
-        >
-          {(drag) => <CardInner row={row} drag={drag} onStep={onStep} onRemove={onRemove} />}
-        </DragCard>
-      ))}
-    </View>
-  );
-}
-
-function DragCard({
-  row,
-  count,
-  rowHeight,
-  positions,
-  onReorder,
-  children,
-}: {
-  row: EditRow;
-  count: number;
-  rowHeight: number;
-  positions: SharedValue<Record<string, number>>;
-  onReorder: (keys: string[]) => void;
-  children: (drag: ReturnType<typeof Gesture.Pan>) => ReactNode;
-}) {
-  const key = row.key;
-  const top = useSharedValue((positions.value[key] ?? 0) * rowHeight);
-  const startTop = useSharedValue(0);
-  const active = useSharedValue(false);
-
-  useAnimatedReaction(
-    () => positions.value[key],
-    (cur, prev) => {
-      if (cur !== undefined && cur !== prev && !active.value) {
-        top.value = withSpring(cur * rowHeight, motion.spring);
-      }
-    },
-  );
-
-  // Long-press the handle to pick up — disambiguates from list scrolling.
-  const drag = Gesture.Pan()
-    .activateAfterLongPress(180)
-    .onStart(() => {
-      active.value = true;
-      startTop.value = top.value;
-    })
-    .onUpdate((e) => {
-      top.value = startTop.value + e.translationY;
-      const newIndex = Math.min(Math.max(Math.round(top.value / rowHeight), 0), count - 1);
-      const curIndex = positions.value[key];
-      if (newIndex !== curIndex) {
-        positions.value = objectMove(positions.value, curIndex, newIndex);
-      }
-    })
-    .onEnd(() => {
-      top.value = withSpring((positions.value[key] ?? 0) * rowHeight, motion.spring);
-    })
-    .onFinalize(() => {
-      if (!active.value) return;
-      active.value = false;
-      runOnJS(onReorder)(orderFromPositions(positions.value));
-    });
-
-  const style = useAnimatedStyle(() => ({
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: top.value,
-    zIndex: active.value ? 10 : 1,
-    transform: [{ scale: withSpring(active.value ? 1.03 : 1, motion.spring) }],
-    shadowOpacity: active.value ? elevation.elev2.shadowOpacity : elevation.elev1.shadowOpacity,
-    shadowRadius: active.value ? elevation.elev2.shadowRadius : elevation.elev1.shadowRadius,
-    elevation: active.value ? 12 : 8,
-  }));
-
-  return <Animated.View style={[styles.dragCard, style]}>{children(drag)}</Animated.View>;
-}
-
-function CardInner({
+function ExerciseCardInner({
   row,
   drag,
   onStep,
   onRemove,
 }: {
   row: EditRow;
-  drag?: ReturnType<typeof Gesture.Pan>;
+  drag: PanGesture | undefined;
   onStep: (key: string, field: 'targetSets' | 'targetReps', delta: number) => void;
   onRemove: (key: string) => void;
 }) {
@@ -340,7 +197,7 @@ function CardInner({
     </View>
   );
   return (
-    <>
+    <View style={styles.cardPad}>
       <View style={styles.exHead}>
         <EquipmentIcon equipment={row.equipment} size={21} />
         <Text variant="headline" numberOfLines={1} style={styles.exName}>
@@ -374,7 +231,7 @@ function CardInner({
           Remove
         </Text>
       </Pressable>
-    </>
+    </View>
   );
 }
 
@@ -421,20 +278,16 @@ function Stepper({
   );
 }
 
-const cardStyle = {
-  backgroundColor: colors.surface,
-  borderRadius: radius.md,
-  paddingTop: layout.cardPaddingMin,
-  paddingHorizontal: layout.cardPaddingMin,
-  paddingBottom: spacing[1],
-} as const;
-
 const styles = StyleSheet.create({
   nav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: spacing[2],
+  },
+  gone: {
+    marginTop: spacing[8],
+    textAlign: 'center',
   },
   exLabel: {
     marginTop: spacing[5],
@@ -447,15 +300,10 @@ const styles = StyleSheet.create({
   addExercise: {
     marginTop: spacing[2],
   },
-  flowCard: {
-    ...cardStyle,
-    ...elevation.elev1,
-    marginBottom: GAP,
-  },
-  dragCard: {
-    ...cardStyle,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 6 },
+  cardPad: {
+    paddingTop: layout.cardPaddingMin,
+    paddingHorizontal: layout.cardPaddingMin,
+    paddingBottom: spacing[1],
   },
   exHead: {
     flexDirection: 'row',
