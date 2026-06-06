@@ -11,6 +11,8 @@ interface SegmentedControlProps<T extends string> {
   options: ReadonlyArray<SegmentOption<T>>;
   value: T;
   onChange: (value: T) => void;
+  /** `accent` (default): accent fill + near-black label. `neutral`: surfaceHigh fill + white. */
+  variant?: 'accent' | 'neutral';
   style?: StyleProp<ViewStyle>;
 }
 
@@ -23,8 +25,10 @@ export function SegmentedControl<T extends string>({
   options,
   value,
   onChange,
+  variant = 'accent',
   style,
 }: SegmentedControlProps<T>) {
+  const activeColor = variant === 'neutral' ? 'textPrimary' : 'textOnAccent';
   return (
     <View style={[styles.track, style]}>
       {options.map((option) => {
@@ -35,11 +39,14 @@ export function SegmentedControl<T extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             onPress={() => onChange(option.value)}
-            style={[styles.segment, active && styles.segmentActive]}
+            style={[
+              styles.segment,
+              active && (variant === 'neutral' ? styles.activeNeutral : styles.activeAccent),
+            ]}
           >
             <Text
               variant="caption"
-              color={active ? 'textOnAccent' : 'textSecondary'}
+              color={active ? activeColor : 'textSecondary'}
               style={styles.label}
             >
               {option.label}
@@ -64,8 +71,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[2],
     borderRadius: radius.xs,
   },
-  segmentActive: {
+  activeAccent: {
     backgroundColor: colors.accent,
+  },
+  activeNeutral: {
+    backgroundColor: colors.surfaceHigh,
   },
   label: {
     fontFamily: fontFamily.medium,
