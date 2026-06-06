@@ -1,17 +1,25 @@
 /**
- * Home screen data — MOCK for now, shaped to the real Supabase schema
- * (routines → routine_days → routine_day_exercises, workout_sessions →
- * session_sets). Derived values (volume, set counts) are computed here via the
- * /utils helpers, never stored — matching how the real queries will work once
- * wired. Swap `useHomeData` for TanStack Query against queries.ts later.
+ * Home screen data — live now. "Up next" comes from the user's current program
+ * (profiles.current_routine_id, via usePrograms) plus a simple rotation off the
+ * most recently completed day; the 7-day stats and recent list are derived from
+ * real sessions (fetchHomeSessions), cached for offline via TanStack Query + the
+ * MMKV persister. Derived values (volume, set counts) are computed here with the
+ * /utils helpers, never stored.
  */
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchHomeSessions, type HomeSessionRow } from '../../lib/supabase/queries';
 import { totalVolume } from '../../utils/volume';
+import { useAuth } from '../auth/AuthProvider';
+import { usePrograms } from '../routines/usePrograms';
+import type { Equipment } from '../../components/EquipmentIcon';
+import type { Program, ProgramDay } from '../routines/routinesStore';
 
 /* ------------------------------- view models ------------------------------ */
 
 export interface HomeExercisePreview {
   name: string;
-  equipment: string | null;
+  equipment: Equipment | null;
   targetSets: number;
 }
 
@@ -30,101 +38,124 @@ export interface HomeRecentSession {
   startedAt: string; // ISO
   setsCount: number;
   volumeKg: number;
-  equipment: string | null; // lead icon (first exercise)
+  equipment: Equipment | null; // lead icon (first exercise)
 }
 
-// "Up next" now comes from the current program (routinesStore); Home owns only
-// the stats + recent history here.
-export interface HomeData {
+export interface HomeReady {
+  up: { program: Program; day: ProgramDay } | null; // the next day to train (null = no program)
   last7: { workouts: number; volumeKg: number };
   recent: HomeRecentSession[];
 }
 
-export type HomeQueryState =
+export type HomeState =
   | { status: 'loading' }
-  | { status: 'error'; cached: HomeData | null }
-  | { status: 'empty' } // brand-new user: no routine, no history
-  | { status: 'ready'; data: HomeData };
+  | { status: 'error' }
+  | { status: 'empty' } // brand-new account: no current program AND no workouts
+  | { status: 'ready'; data: HomeReady };
 
-/* --------------------------------- mock ----------------------------------- */
+/* -------------------------------- helpers --------------------------------- */
 
-/** Compact set-builder: `count` sets at the same weight/reps (canonical kg). */
-function sets(weightKg: number, reps: number, count: number) {
-  return Array.from({ length: count }, () => ({ weight_kg: weightKg, reps }));
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const RECENT_LIMIT = 5;
+
+/** The completed sets across a session (the work actually done). */
+function completedSets(s: HomeSessionRow) {
+  return s.session_exercises.flatMap((ex) => ex.session_sets.filter((set) => set.completed));
 }
 
-// Three completed sessions within the last 7 days (most recent first).
-const PUSH_SETS = [
-  ...sets(60, 8, 4), // barbell bench
-  ...sets(27.5, 10, 3), // incline dumbbell
-  ...sets(20, 10, 3), // seated shoulder press
-  ...sets(15, 12, 3), // cable fly
-  ...sets(25, 12, 3), // triceps pushdown
-  ...sets(9, 15, 3), // lateral raise
-];
-const PULL_SETS = [
-  ...sets(100, 5, 4), // deadlift
-  ...sets(70, 8, 3), // barbell row
-  ...sets(0, 10, 4), // pull-ups (bodyweight)
-  ...sets(25, 10, 3), // lat pulldown
-  ...sets(15, 12, 4), // biceps curl
-];
-const LEG_SETS = [
-  ...sets(100, 8, 4), // back squat
-  ...sets(80, 10, 3), // romanian deadlift
-  ...sets(140, 12, 3), // leg press
-  ...sets(45, 12, 3), // leg curl
-  ...sets(60, 15, 4), // calf raise
-  ...sets(50, 12, 3), // leg extension
-];
+/** A real workout has at least one completed set (skips empty finished sessions). */
+function isReal(s: HomeSessionRow): boolean {
+  return s.session_exercises.some((ex) => ex.session_sets.some((set) => set.completed));
+}
 
-const RECENT: HomeRecentSession[] = [
-  {
-    id: '11111111-1111-4111-8111-111111111111',
-    name: 'Leg day',
-    startedAt: '2026-06-02T17:30:00.000Z',
-    setsCount: LEG_SETS.length,
-    volumeKg: totalVolume(LEG_SETS),
-    equipment: 'barbell',
-  },
-  {
-    id: '22222222-2222-4222-8222-222222222222',
-    name: 'Pull day',
-    startedAt: '2026-05-31T16:05:00.000Z',
-    setsCount: PULL_SETS.length,
-    volumeKg: totalVolume(PULL_SETS),
-    equipment: 'barbell',
-  },
-];
+/** Lead icon: the first exercise's catalog equipment. */
+function leadEquipment(s: HomeSessionRow): Equipment | null {
+  const first = [...s.session_exercises].sort((a, b) => a.position - b.position)[0];
+  return (first?.exercises?.equipment ?? null) as Equipment | null;
+}
 
-const LAST7 = {
-  workouts: 3,
-  volumeKg: totalVolume([...PUSH_SETS, ...PULL_SETS, ...LEG_SETS]),
-};
-
-const MOCK_HOME: HomeData = { last7: LAST7, recent: RECENT };
+/**
+ * Simple rotation: the day after the most recently completed in-program day,
+ * wrapping back to the first — or day 1 if nothing in this program is logged yet.
+ * `real` is newest-first.
+ */
+function rotateNextDay(program: Program, real: HomeSessionRow[]): ProgramDay {
+  const indexOf = new Map(program.days.map((d, i) => [d.id, i]));
+  const last = real.find((s) => s.routine_day_id != null && indexOf.has(s.routine_day_id));
+  if (!last || last.routine_day_id == null) return program.days[0];
+  const i = indexOf.get(last.routine_day_id) ?? 0;
+  return program.days[(i + 1) % program.days.length];
+}
 
 /* --------------------------------- hook ----------------------------------- */
 
-/**
- * Preview a non-default state on the simulator by setting this, then reload:
- * 'loading' | 'error' | 'empty' | 'no-routine'. Leave null for the populated screen.
- */
-const FORCE_STATE: 'loading' | 'error' | 'empty' | null = null;
+/** Live Home data: a discriminated state the screen renders 1:1. */
+export function useHome(): { state: HomeState; refetch: () => void } {
+  const { session } = useAuth();
+  const userId = session?.user.id;
 
-/** Mock Home data source. Returns a discriminated state the screen renders 1:1. */
-export function useHomeData(): { state: HomeQueryState; refetch: () => void } {
-  // refetch is a no-op while mocked; it becomes queryClient.invalidate once wired.
-  const refetch = () => {};
+  const sessionsQuery = useQuery({
+    queryKey: ['sessions', userId],
+    enabled: !!userId,
+    queryFn: () => fetchHomeSessions(),
+  });
 
-  switch (FORCE_STATE) {
-    case 'loading':
-      return { state: { status: 'loading' }, refetch };
-    case 'error':
-      return { state: { status: 'error', cached: MOCK_HOME }, refetch };
-    case 'empty':
-      return { state: { status: 'empty' }, refetch };
-    default:
-      return { state: { status: 'ready', data: MOCK_HOME }, refetch };
-  }
+  const {
+    state: programsState,
+    programs,
+    currentRoutineId,
+    refetch: refetchPrograms,
+  } = usePrograms();
+
+  const rows = sessionsQuery.data;
+  const isError = sessionsQuery.isError;
+
+  const state = useMemo<HomeState>(() => {
+    const ready = rows !== undefined && programsState === 'ready';
+    if (!ready) {
+      // Offline-first: only an error once there's no data to show at all.
+      if (programsState === 'error' || isError) return { status: 'error' };
+      return { status: 'loading' };
+    }
+
+    const real = rows.filter(isReal);
+    const currentProgram = currentRoutineId
+      ? (programs.find((p) => p.id === currentRoutineId) ?? null)
+      : null;
+
+    if (!currentProgram && real.length === 0) return { status: 'empty' };
+
+    const up =
+      currentProgram && currentProgram.days.length > 0
+        ? { program: currentProgram, day: rotateNextDay(currentProgram, real) }
+        : null;
+
+    const now = Date.now();
+    const inWeek = real.filter((s) => now - new Date(s.started_at).getTime() <= WEEK_MS);
+    const last7 = {
+      workouts: inWeek.length,
+      volumeKg: inWeek.reduce((sum, s) => sum + totalVolume(completedSets(s)), 0),
+    };
+
+    const recent: HomeRecentSession[] = real.slice(0, RECENT_LIMIT).map((s) => {
+      const done = completedSets(s);
+      return {
+        id: s.id,
+        name: s.name ?? 'Workout',
+        startedAt: s.started_at,
+        setsCount: done.length,
+        volumeKg: totalVolume(done),
+        equipment: leadEquipment(s),
+      };
+    });
+
+    return { status: 'ready', data: { up, last7, recent } };
+  }, [rows, isError, programsState, programs, currentRoutineId]);
+
+  const refetch = () => {
+    void sessionsQuery.refetch();
+    refetchPrograms();
+  };
+
+  return { state, refetch };
 }

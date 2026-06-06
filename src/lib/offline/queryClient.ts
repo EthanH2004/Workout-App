@@ -52,6 +52,11 @@ queryClient.setMutationDefaults(['programs', 'mutate'], {
 
 queryClient.setMutationDefaults(['sessions', 'save'], {
   mutationFn: (vars: SaveSessionInput) => insertSession(vars),
+  // Defined here (not on the component's useMutation) so it still fires after the
+  // Active Workout screen unmounts on finish, refreshing Home's live queries.
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ['sessions'] });
+  },
 });
 
 /** Persists both the query cache (offline reads) and the mutation queue (offline writes). */

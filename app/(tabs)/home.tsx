@@ -15,17 +15,12 @@ import { toDisplayInt, type WeightUnit } from '../../src/utils/units';
 import { formatLongDate, formatShortDate, groupThousands } from '../../src/utils/format';
 import { useUnit } from '../../src/features/settings/settingsStore';
 import {
-  useHomeData,
-  type HomeData,
+  useHome,
+  type HomeReady,
   type HomeRecentSession,
   type HomeUpNext,
 } from '../../src/features/home/homeData';
-import {
-  currentNextDay,
-  useRoutines,
-  type Program,
-  type ProgramDay,
-} from '../../src/features/routines/routinesStore';
+import type { Program, ProgramDay } from '../../src/features/routines/routinesStore';
 
 /** Build the Home "Up next" view from the current program's next day. */
 function buildUpNext(program: Program, day: ProgramDay): HomeUpNext {
@@ -45,10 +40,8 @@ function buildUpNext(program: Program, day: ProgramDay): HomeUpNext {
 
 /** Home tab (§2.1): the landing after launch, one tap into today's session. */
 export default function HomeScreen() {
-  const { state, refetch } = useHomeData();
+  const { state, refetch } = useHome();
   const unit = useUnit();
-  useRoutines(); // subscribe so "Up next" reacts to current-program / rotation changes
-  const next = currentNextDay();
   const today = new Date();
 
   return (
@@ -64,6 +57,8 @@ export default function HomeScreen() {
 
       {state.status === 'loading' ? <HomeSkeleton /> : null}
 
+      {state.status === 'error' ? <ErrorState onRetry={refetch} /> : null}
+
       {state.status === 'empty' ? (
         <QuickStartCard
           title="Start your first workout"
@@ -72,33 +67,18 @@ export default function HomeScreen() {
         />
       ) : null}
 
-      {state.status === 'error' ? (
-        <>
-          <ErrorBanner onRetry={refetch} />
-          {state.cached ? <HomeContent data={state.cached} next={next} unit={unit} /> : null}
-        </>
-      ) : null}
-
-      {state.status === 'ready' ? <HomeContent data={state.data} next={next} unit={unit} /> : null}
+      {state.status === 'ready' ? <HomeContent data={state.data} unit={unit} /> : null}
     </ScreenScaffold>
   );
 }
 
 /* ------------------------------ populated body ----------------------------- */
 
-function HomeContent({
-  data,
-  next,
-  unit,
-}: {
-  data: HomeData;
-  next: { program: Program; day: ProgramDay } | null;
-  unit: WeightUnit;
-}) {
+function HomeContent({ data, unit }: { data: HomeReady; unit: WeightUnit }) {
   return (
     <>
-      {next ? (
-        <UpNextCard upNext={buildUpNext(next.program, next.day)} dayId={next.day.id} />
+      {data.up ? (
+        <UpNextCard upNext={buildUpNext(data.up.program, data.up.day)} dayId={data.up.day.id} />
       ) : (
         <QuickStartCard
           title="Start a workout"
@@ -260,18 +240,17 @@ function HomeSkeleton() {
   );
 }
 
-function ErrorBanner({ onRetry }: { onRetry: () => void }) {
+function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
-    <View style={styles.banner}>
-      <Text variant="caption" color="textSecondary" style={styles.bannerText}>
-        Couldn't refresh
+    <Card style={styles.upNext}>
+      <Text variant="title" style={styles.upNextTitle}>
+        Couldn't load your dashboard
       </Text>
-      <Pressable accessibilityRole="button" onPress={onRetry} hitSlop={spacing[2]}>
-        <Text variant="caption" color="accentText">
-          Retry
-        </Text>
-      </Pressable>
-    </View>
+      <Text variant="caption" color="textSecondary" style={styles.upNextMeta}>
+        Check your connection and try again.
+      </Text>
+      <Button label="Retry" variant="secondary" onPress={onRetry} style={styles.startButton} />
+    </Card>
   );
 }
 
@@ -352,18 +331,5 @@ const styles = StyleSheet.create({
   skeleton: {
     backgroundColor: colors.surfaceRaised,
     borderRadius: radius.md,
-  },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    marginTop: spacing[3],
-  },
-  bannerText: {
-    flex: 1,
   },
 });

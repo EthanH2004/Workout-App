@@ -404,6 +404,38 @@ export async function insertSession(input: SaveSessionInput): Promise<void> {
   }
 }
 
+/** One recent session with the bits Home needs: lead equipment + sets for stats. */
+export interface HomeSessionRow {
+  id: string;
+  name: string | null;
+  started_at: string;
+  routine_day_id: string | null;
+  session_exercises: {
+    position: number;
+    exercise_name: string;
+    exercises: { equipment: string | null } | null;
+    session_sets: { weight_kg: number | null; reps: number | null; completed: boolean }[];
+  }[];
+}
+
+/**
+ * The user's most recent sessions (RLS-scoped), newest first, with each
+ * exercise's catalog equipment and every set embedded — enough to derive the
+ * recent list, the 7-day stats, and the next-day rotation on the client.
+ */
+export async function fetchHomeSessions(limit = 30): Promise<HomeSessionRow[]> {
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select(
+      'id, name, started_at, routine_day_id, session_exercises(position, exercise_name, exercises(equipment), session_sets(weight_kg, reps, completed))',
+    )
+    .is('deleted_at', null)
+    .order('started_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as unknown as HomeSessionRow[];
+}
+
 /** Read the signed-in user's profile row (created by the signup trigger). */
 export async function fetchProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase
