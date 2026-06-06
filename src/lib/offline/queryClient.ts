@@ -3,10 +3,12 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import { mmkvPersistStorage } from './storage';
 import {
   insertCustomExercise,
+  insertSession,
   runProgramMutation,
   updateUnitPreference,
   type NewCustomExercise,
   type ProgramAction,
+  type SaveSessionInput,
 } from '../supabase/queries';
 import type { WeightUnit } from '../../utils/units';
 
@@ -46,6 +48,10 @@ queryClient.setMutationDefaults(['exercises', 'createCustom'], {
 
 queryClient.setMutationDefaults(['programs', 'mutate'], {
   mutationFn: (vars: ProgramAction) => runProgramMutation(vars),
+});
+
+queryClient.setMutationDefaults(['sessions', 'save'], {
+  mutationFn: (vars: SaveSessionInput) => insertSession(vars),
 });
 
 /** Persists both the query cache (offline reads) and the mutation queue (offline writes). */

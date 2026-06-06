@@ -320,6 +320,90 @@ export async function runProgramMutation(action: ProgramAction): Promise<void> {
   }
 }
 
+/* ------------------------------- sessions --------------------------------- */
+
+/**
+ * A finished workout to persist: the session row, its exercises (with a name
+ * snapshot + a valid exercise_id FK), and its logged sets (canonical kg).
+ * Vars carry resolved client UUIDs + owner_id so the write replays offline.
+ */
+export interface SaveSessionInput {
+  session: {
+    id: string;
+    ownerId: string;
+    routineDayId: string | null;
+    name: string | null;
+    startedAt: string;
+    endedAt: string;
+  };
+  exercises: {
+    id: string;
+    ownerId: string;
+    sessionId: string;
+    exerciseId: string;
+    exerciseName: string;
+    position: number;
+  }[];
+  sets: {
+    id: string;
+    ownerId: string;
+    sessionExerciseId: string;
+    setIndex: number;
+    weightKg: number | null;
+    reps: number | null;
+    completed: boolean;
+    loggedAt: string;
+  }[];
+}
+
+/** Persist a finished workout: session → exercises → sets, in dependency order. */
+export async function insertSession(input: SaveSessionInput): Promise<void> {
+  const { session, exercises, sets } = input;
+
+  const { error: sErr } = await supabase.from('workout_sessions').insert({
+    id: session.id,
+    owner_id: session.ownerId,
+    routine_day_id: session.routineDayId,
+    name: session.name,
+    started_at: session.startedAt,
+    ended_at: session.endedAt,
+    updated_at: now(),
+  });
+  if (sErr) throw sErr;
+
+  if (exercises.length) {
+    const { error } = await supabase.from('session_exercises').insert(
+      exercises.map((e) => ({
+        id: e.id,
+        owner_id: e.ownerId,
+        session_id: e.sessionId,
+        exercise_id: e.exerciseId,
+        exercise_name: e.exerciseName,
+        position: e.position,
+        updated_at: now(),
+      })),
+    );
+    if (error) throw error;
+  }
+
+  if (sets.length) {
+    const { error } = await supabase.from('session_sets').insert(
+      sets.map((s) => ({
+        id: s.id,
+        owner_id: s.ownerId,
+        session_exercise_id: s.sessionExerciseId,
+        set_index: s.setIndex,
+        weight_kg: s.weightKg,
+        reps: s.reps,
+        completed: s.completed,
+        logged_at: s.loggedAt,
+        updated_at: now(),
+      })),
+    );
+    if (error) throw error;
+  }
+}
+
 /** Read the signed-in user's profile row (created by the signup trigger). */
 export async function fetchProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase

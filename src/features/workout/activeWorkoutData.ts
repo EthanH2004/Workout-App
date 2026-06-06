@@ -39,7 +39,13 @@ export interface ActiveSession {
   id: string;
   dayName: string; // "Push day"
   groupName: string | null; // "Push Pull Legs"
+  routineDayId: string | null; // the DB routine_day this was launched from (null = one-off)
   exercises: ActiveExercise[];
+}
+
+/** A set worth persisting: completed, or with a weight/reps entered. */
+export function isLoggedSet(s: ActiveSet): boolean {
+  return s.completed || s.weightKg != null || s.reps != null;
 }
 
 /* --------------------------------- mock ----------------------------------- */
@@ -55,6 +61,7 @@ export function createMockSession(): ActiveSession {
     id: uuid(),
     dayName: 'Push day',
     groupName: 'Push Pull Legs',
+    routineDayId: null,
     exercises: [
       {
         id: uuid(),
@@ -95,7 +102,7 @@ export function createMockSession(): ActiveSession {
 
 /** A freestyle session with no exercises yet (empty state). */
 export function createEmptySession(): ActiveSession {
-  return { id: uuid(), dayName: 'Quick workout', groupName: null, exercises: [] };
+  return { id: uuid(), dayName: 'Quick workout', groupName: null, routineDayId: null, exercises: [] };
 }
 
 // Mock "last time" history keyed by exercise name — drives ghost targets + PR
@@ -119,6 +126,7 @@ export function createSessionFromDay(program: Program, day: ProgramDay): ActiveS
     id: uuid(),
     dayName: day.name,
     groupName: program.name,
+    routineDayId: day.id,
     exercises: day.exercises.map((e) => {
       const hist = MOCK_HISTORY[e.name];
       return {

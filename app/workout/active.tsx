@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -27,7 +27,6 @@ import {
   activeReducer,
   allSetsComplete,
   createEmptySession,
-  createMockSession,
   createSessionFromDay,
   firstIncompleteSetId,
   hasLoggedSets,
@@ -36,11 +35,11 @@ import {
   type LastTime,
 } from '../../src/features/workout/activeWorkoutData';
 import { NumberPadSheet } from '../../src/features/workout/NumberPadSheet';
+import { useSaveSession } from '../../src/features/workout/useSaveSession';
 import { requestExercises } from '../../src/features/exercises/pickerHandoff';
-import { advanceCurrentDay, findDay } from '../../src/features/routines/routinesStore';
-
-// Preview the empty / loading variants on the simulator; null = mid-session.
-const FORCE_VARIANT: 'empty' | 'loading' | null = null;
+import { advanceCurrentDay } from '../../src/features/routines/routinesStore';
+import type { Program, ProgramDay } from '../../src/features/routines/routinesStore';
+import { usePrograms } from '../../src/features/routines/usePrograms';
 
 /** The displayed weight/reps for a set: own values if logged, else the ghost target. */
 function setValues(s: ActiveSet, lastTime: LastTime | null, unit: WeightUnit) {
@@ -70,18 +69,69 @@ function padPrefill(s: ActiveSet, lastTime: LastTime | null, unit: WeightUnit) {
   };
 }
 
-/** Active workout (§2.2): full-screen logging loop, no tab bar. */
+/** Active workout (§2.2): resolves the program day (if any), then logs + saves. */
 export default function ActiveWorkoutScreen() {
   const router = useRouter();
   const { dayId } = useLocalSearchParams<{ dayId?: string }>();
-  const [session, dispatch] = useReducer(activeReducer, undefined, () => {
-    if (FORCE_VARIANT === 'empty') return createEmptySession();
-    if (dayId) {
-      const found = findDay(dayId);
-      if (found) return createSessionFromDay(found.program, found.day);
-    }
-    return createMockSession();
-  });
+  const { state, findDay, refetch } = usePrograms();
+
+  // A program-day workout pre-fills from the live library (step 4); wait for it.
+  // A one-off workout (no dayId) needs no library and starts immediately.
+  if (dayId && state !== 'ready') {
+    return (
+      <GateScaffold onClose={() => router.back()}>
+        {state === 'error' ? (
+          <View style={styles.gate}>
+            <Text variant="body" color="textSecondary" style={styles.gateText}>
+              Couldn't load this workout.
+            </Text>
+            <Button label="Retry" variant="secondary" onPress={refetch} style={styles.gateRetry} />
+          </View>
+        ) : (
+          <LoadingCards />
+        )}
+      </GateScaffold>
+    );
+  }
+
+  // An unknown id (e.g. a deleted day) falls back to a one-off so the user can
+  // still log and save.
+  const found = dayId ? findDay(dayId) : null;
+  return <ActiveWorkout found={found} />;
+}
+
+function GateScaffold({ onClose, children }: { onClose: () => void; children: ReactNode }) {
+  return (
+    <ScreenScaffold
+      header={
+        <View style={styles.nav}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close workout"
+            onPress={onClose}
+            style={styles.navIcon}
+          >
+            <CaretDown size={icon.size.standard} color={colors.textPrimary} weight="bold" />
+          </Pressable>
+          <View style={styles.navCenter}>
+            <Text variant="headline">Workout</Text>
+          </View>
+          <View style={styles.navIcon} />
+        </View>
+      }
+    >
+      {children}
+    </ScreenScaffold>
+  );
+}
+
+/** The logging loop itself, mounted once the initial session is resolved. */
+function ActiveWorkout({ found }: { found: { program: Program; day: ProgramDay } | null }) {
+  const router = useRouter();
+  const { save } = useSaveSession();
+  const [session, dispatch] = useReducer(activeReducer, found, (f) =>
+    f ? createSessionFromDay(f.program, f.day) : createEmptySession(),
+  );
 
   const startRef = useRef(Date.now());
   const [elapsed, setElapsed] = useState(0);
@@ -185,9 +235,12 @@ export default function ActiveWorkoutScreen() {
     router.push('/exercise-picker');
   }
 
-  // TODO(§ summary): Finish writes PRs + shows the summary screen.
+  // Persist optimistically (offline-queued) and leave immediately — saving never
+  // blocks the UI. Discarding (close / swipe-down) takes a different path and
+  // writes nothing. TODO(§ summary): show the summary screen + PRs.
   function handleFinish() {
-    advanceCurrentDay(); // mock rotation: next time, the program's next day is up
+    save(session, new Date(startRef.current).toISOString());
+    advanceCurrentDay(); // mock Home rotation (Home still reads mock this step)
     router.back();
   }
 
@@ -224,9 +277,7 @@ export default function ActiveWorkoutScreen() {
     <View style={styles.root}>
       <Animated.View style={[styles.flex, screenStyle]}>
         <ScreenScaffold header={header}>
-        {FORCE_VARIANT === 'loading' ? (
-          <LoadingCards />
-        ) : isEmpty ? (
+        {isEmpty ? (
           <EmptyWorkoutCard onAddExercise={handleAddExercise} />
         ) : (
           <>
@@ -492,5 +543,16 @@ const styles = StyleSheet.create({
   skeleton: {
     backgroundColor: colors.surfaceRaised,
     borderRadius: radius.md,
+  },
+  gate: {
+    marginTop: spacing[8],
+    alignItems: 'center',
+  },
+  gateText: {
+    textAlign: 'center',
+  },
+  gateRetry: {
+    marginTop: spacing[4],
+    alignSelf: 'stretch',
   },
 });
