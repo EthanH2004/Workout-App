@@ -11,7 +11,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.workout-tracker"
+      "bundleIdentifier": "com.ethanh.workouttracker"
     },
     "android": {
       "adaptiveIcon": {
