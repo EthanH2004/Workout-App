@@ -99,11 +99,21 @@ export function createEmptySession(): ActiveSession {
 
 /* -------------------------------- reducer --------------------------------- */
 
+/** A catalog exercise being added to the session (from the Exercise Picker). */
+export interface NewExerciseInput {
+  exerciseId: string;
+  name: string;
+  equipment: Equipment | null;
+}
+
+const DEFAULT_NEW_SETS = 3;
+
 export type ActiveAction =
   | { type: 'TOGGLE_COMPLETE'; exerciseId: string; setId: string }
   | { type: 'ADD_SET'; exerciseId: string }
   | { type: 'LOG_SET'; exerciseId: string; setId: string; weightKg: number; reps: number }
-  | { type: 'EDIT_SET'; exerciseId: string; setId: string; weightKg: number; reps: number };
+  | { type: 'EDIT_SET'; exerciseId: string; setId: string; weightKg: number; reps: number }
+  | { type: 'ADD_EXERCISES'; exercises: NewExerciseInput[] };
 
 function mapExercise(
   session: ActiveSession,
@@ -156,6 +166,25 @@ export function activeReducer(state: ActiveSession, action: ActiveAction): Activ
             : s,
         ),
       }));
+    case 'ADD_EXERCISES':
+      // Append picker selections as fresh exercises with empty to-do sets.
+      return {
+        ...state,
+        exercises: [
+          ...state.exercises,
+          ...action.exercises.map((e) => ({
+            id: uuid(),
+            exerciseId: e.exerciseId,
+            name: e.name,
+            equipment: e.equipment,
+            prLive: false,
+            lastTime: null,
+            sets: Array.from({ length: DEFAULT_NEW_SETS }, (_, i) =>
+              set(i + 1, null, null, false),
+            ),
+          })),
+        ],
+      };
     default:
       return state;
   }

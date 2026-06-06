@@ -34,6 +34,7 @@ import {
   type LastTime,
 } from '../../src/features/workout/activeWorkoutData';
 import { NumberPadSheet } from '../../src/features/workout/NumberPadSheet';
+import { requestExercises } from '../../src/features/exercises/pickerHandoff';
 
 const UNIT = 'lb';
 const WEIGHT_LABEL = 'Lbs';
@@ -162,8 +163,22 @@ export default function ActiveWorkoutScreen() {
     dispatch({ type: 'TOGGLE_COMPLETE', exerciseId, setId: set.id });
   }
 
-  // TODO(§2.6): open the Exercise picker; (§ summary) Finish writes PRs + shows summary.
-  const handleAddExercise = () => {};
+  // Open the shared Exercise Picker; append whatever it returns as new cards.
+  function handleAddExercise() {
+    requestExercises((picked) => {
+      dispatch({
+        type: 'ADD_EXERCISES',
+        exercises: picked.map((e) => ({
+          exerciseId: e.id,
+          name: e.name,
+          equipment: e.equipment,
+        })),
+      });
+    });
+    router.push('/exercise-picker');
+  }
+
+  // TODO(§ summary): Finish writes PRs + shows the summary screen.
   const handleFinish = () => router.back();
 
   const header = (
