@@ -11,8 +11,9 @@ import {
   Text,
 } from '../../src/components';
 import { colors, icon, layout, radius, spacing } from '../../src/theme/tokens';
-import { kgToLb } from '../../src/utils/units';
+import { toDisplayInt, type WeightUnit } from '../../src/utils/units';
 import { formatLongDate, formatShortDate, groupThousands } from '../../src/utils/format';
+import { useUnit } from '../../src/features/settings/settingsStore';
 import {
   useHomeData,
   type HomeData,
@@ -42,12 +43,10 @@ function buildUpNext(program: Program, day: ProgramDay): HomeUpNext {
   };
 }
 
-// Display unit is the app default until the Settings units toggle / profile is wired.
-const UNIT = 'lb';
-
 /** Home tab (§2.1): the landing after launch, one tap into today's session. */
 export default function HomeScreen() {
   const { state, refetch } = useHomeData();
+  const unit = useUnit();
   useRoutines(); // subscribe so "Up next" reacts to current-program / rotation changes
   const next = currentNextDay();
   const today = new Date();
@@ -76,11 +75,11 @@ export default function HomeScreen() {
       {state.status === 'error' ? (
         <>
           <ErrorBanner onRetry={refetch} />
-          {state.cached ? <HomeContent data={state.cached} next={next} /> : null}
+          {state.cached ? <HomeContent data={state.cached} next={next} unit={unit} /> : null}
         </>
       ) : null}
 
-      {state.status === 'ready' ? <HomeContent data={state.data} next={next} /> : null}
+      {state.status === 'ready' ? <HomeContent data={state.data} next={next} unit={unit} /> : null}
     </ScreenScaffold>
   );
 }
@@ -90,9 +89,11 @@ export default function HomeScreen() {
 function HomeContent({
   data,
   next,
+  unit,
 }: {
   data: HomeData;
   next: { program: Program; day: ProgramDay } | null;
+  unit: WeightUnit;
 }) {
   return (
     <>
@@ -110,13 +111,13 @@ function HomeContent({
         <StatCard label="Workouts · 7d" value={data.last7.workouts} style={styles.statItem} />
         <StatCard
           label="Volume · 7d"
-          value={groupThousands(kgToLb(data.last7.volumeKg))}
-          unit={UNIT}
+          value={groupThousands(toDisplayInt(data.last7.volumeKg, unit))}
+          unit={unit}
           style={styles.statItem}
         />
       </View>
 
-      {data.recent.length > 0 ? <RecentList sessions={data.recent} /> : null}
+      {data.recent.length > 0 ? <RecentList sessions={data.recent} unit={unit} /> : null}
     </>
   );
 }
@@ -200,22 +201,30 @@ function QuickStartCard({
   );
 }
 
-function RecentList({ sessions }: { sessions: HomeRecentSession[] }) {
+function RecentList({ sessions, unit }: { sessions: HomeRecentSession[]; unit: WeightUnit }) {
   return (
     <View style={styles.section}>
       <SectionLabel style={styles.sectionLabel}>Recent</SectionLabel>
       {sessions.map((session, i) => (
-        <RecentRow key={session.id} session={session} first={i === 0} />
+        <RecentRow key={session.id} session={session} first={i === 0} unit={unit} />
       ))}
     </View>
   );
 }
 
-function RecentRow({ session, first }: { session: HomeRecentSession; first: boolean }) {
+function RecentRow({
+  session,
+  first,
+  unit,
+}: {
+  session: HomeRecentSession;
+  first: boolean;
+  unit: WeightUnit;
+}) {
   // The read-only session summary route isn't built yet; row is press-ready for it.
   const sub = `${formatShortDate(new Date(session.startedAt))}  ·  ${session.setsCount} sets  ·  ${groupThousands(
-    kgToLb(session.volumeKg),
-  )} ${UNIT}`;
+    toDisplayInt(session.volumeKg, unit),
+  )} ${unit}`;
   return (
     <Pressable
       accessibilityRole="button"

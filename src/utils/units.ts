@@ -10,6 +10,12 @@ const LB_PER_KG = 2.2046226218;
 /** Smallest meaningful display step per unit (a half-pound / quarter-kilo). */
 const DISPLAY_INCREMENT: Record<WeightUnit, number> = { lb: 0.5, kg: 0.25 };
 
+/** Number-pad plate-chip increments per unit. */
+export const PLATE_INCREMENTS: Record<WeightUnit, number[]> = {
+  lb: [2.5, 5, 10, 25],
+  kg: [1.25, 2.5, 5, 10],
+};
+
 export function kgToLb(kg: number): number {
   return kg * LB_PER_KG;
 }
@@ -31,6 +37,11 @@ export function toDisplayWeight(kg: number, unit: WeightUnit): number {
 /** A value the user typed (in their unit) → canonical kg for storage (unrounded). */
 export function fromDisplayWeight(value: number, unit: WeightUnit): number {
   return unit === 'kg' ? value : lbToKg(value);
+}
+
+/** Canonical kg → the user's unit as a whole number (for aggregates: e1RM, volume). */
+export function toDisplayInt(kg: number, unit: WeightUnit): number {
+  return Math.round(unit === 'kg' ? kg : kgToLb(kg));
 }
 
 /** "135 lb" / "60 kg" — tabular-friendly display string. */

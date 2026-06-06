@@ -21,7 +21,8 @@ import {
   type SetRowState,
 } from '../../src/components';
 import { colors, fontFamily, icon, layout, motion, radius, spacing } from '../../src/theme/tokens';
-import { fromDisplayWeight, toDisplayWeight } from '../../src/utils/units';
+import { fromDisplayWeight, toDisplayWeight, type WeightUnit } from '../../src/utils/units';
+import { useUnit } from '../../src/features/settings/settingsStore';
 import {
   activeReducer,
   allSetsComplete,
@@ -38,19 +39,16 @@ import { NumberPadSheet } from '../../src/features/workout/NumberPadSheet';
 import { requestExercises } from '../../src/features/exercises/pickerHandoff';
 import { advanceCurrentDay, findDay } from '../../src/features/routines/routinesStore';
 
-const UNIT = 'lb';
-const WEIGHT_LABEL = 'Lbs';
-
 // Preview the empty / loading variants on the simulator; null = mid-session.
 const FORCE_VARIANT: 'empty' | 'loading' | null = null;
 
 /** The displayed weight/reps for a set: own values if logged, else the ghost target. */
-function setValues(s: ActiveSet, lastTime: LastTime | null) {
+function setValues(s: ActiveSet, lastTime: LastTime | null, unit: WeightUnit) {
   const hasOwn = s.weightKg != null && s.reps != null;
   const weightKg = hasOwn ? s.weightKg : (lastTime?.weightKg ?? null);
   const reps = hasOwn ? s.reps : (lastTime?.reps ?? null);
   return {
-    weight: weightKg != null ? String(toDisplayWeight(weightKg, UNIT)) : '—',
+    weight: weightKg != null ? String(toDisplayWeight(weightKg, unit)) : '—',
     reps: reps != null ? String(reps) : '—',
   };
 }
@@ -64,8 +62,8 @@ interface PadTarget {
 }
 
 /** Pre-fill the pad from a set's displayed values, blanking the em-dash placeholder. */
-function padPrefill(s: ActiveSet, lastTime: LastTime | null) {
-  const values = setValues(s, lastTime);
+function padPrefill(s: ActiveSet, lastTime: LastTime | null, unit: WeightUnit) {
+  const values = setValues(s, lastTime, unit);
   return {
     initialWeight: values.weight === '—' ? '' : values.weight,
     initialReps: values.reps === '—' ? '' : values.reps,
@@ -96,6 +94,8 @@ export default function ActiveWorkoutScreen() {
   const timer = `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`;
 
   const [padTarget, setPadTarget] = useState<PadTarget | null>(null);
+  const unit = useUnit();
+  const weightLabel = unit === 'kg' ? 'Kg' : 'Lbs';
 
   // Suggested-next highlight; while the pad is open it follows the set being edited.
   const highlightedSetId = padTarget ? padTarget.setId : firstIncompleteSetId(session);
@@ -108,14 +108,14 @@ export default function ActiveWorkoutScreen() {
       exerciseId: exercise.id,
       setId: s.id,
       mode: s.completed ? 'edit' : 'log',
-      ...padPrefill(s, exercise.lastTime),
+      ...padPrefill(s, exercise.lastTime, unit),
     });
   }
 
   // "Done": log (or save) the current set and close — the user picks the next set.
   function handlePadSubmit(weightDisplay: number, reps: number) {
     if (!padTarget) return;
-    const weightKg = fromDisplayWeight(weightDisplay, UNIT);
+    const weightKg = fromDisplayWeight(weightDisplay, unit);
     const { exerciseId, setId } = padTarget;
     if (padTarget.mode === 'edit') {
       dispatch({ type: 'EDIT_SET', exerciseId, setId, weightKg, reps });
@@ -236,6 +236,8 @@ export default function ActiveWorkoutScreen() {
                 exercise={exercise}
                 first={index === 0}
                 activeSetId={highlightedSetId}
+                unit={unit}
+                weightLabel={weightLabel}
                 onPressSet={(set) => openPad(exercise, set)}
                 onToggleComplete={(set) => handleToggleComplete(exercise.id, set)}
                 onAddSet={() => dispatch({ type: 'ADD_SET', exerciseId: exercise.id })}
@@ -267,7 +269,7 @@ export default function ActiveWorkoutScreen() {
           setKey={padTarget.setId}
           initialWeight={padTarget.initialWeight}
           initialReps={padTarget.initialReps}
-          unit={UNIT}
+          unit={unit}
           onSubmit={handlePadSubmit}
           onClose={() => setPadTarget(null)}
         />
@@ -282,6 +284,8 @@ function ExerciseCard({
   exercise,
   first,
   activeSetId,
+  unit,
+  weightLabel,
   onPressSet,
   onToggleComplete,
   onAddSet,
@@ -289,6 +293,8 @@ function ExerciseCard({
   exercise: ActiveExercise;
   first: boolean;
   activeSetId: string | null;
+  unit: WeightUnit;
+  weightLabel: string;
   onPressSet: (set: ActiveSet) => void;
   onToggleComplete: (set: ActiveSet) => void;
   onAddSet: () => void;
@@ -308,15 +314,15 @@ function ExerciseCard({
       {exercise.lastTime ? (
         <Text variant="caption" color="textTertiary" style={styles.lastTime}>
           {`Last time · ${exercise.lastTime.dateLabel} · ${String(
-            toDisplayWeight(exercise.lastTime.weightKg, UNIT),
+            toDisplayWeight(exercise.lastTime.weightKg, unit),
           )} × ${exercise.lastTime.reps}`}
         </Text>
       ) : null}
 
-      <SetTableHeader weightLabel={WEIGHT_LABEL} />
+      <SetTableHeader weightLabel={weightLabel} />
 
       {exercise.sets.map((s) => {
-        const values = setValues(s, exercise.lastTime);
+        const values = setValues(s, exercise.lastTime, unit);
         const state: SetRowState = s.completed
           ? 'completed'
           : s.id === activeSetId

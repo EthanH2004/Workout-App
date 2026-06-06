@@ -21,6 +21,7 @@ import {
   type Range,
 } from '../src/features/progress/progressData';
 import { LineChart } from '../src/features/progress/LineChart';
+import { useUnit } from '../src/features/settings/settingsStore';
 
 const METRIC_OPTIONS: { label: string; value: Metric }[] = [
   { label: 'Est. 1RM', value: 'e1rm' },
@@ -35,11 +36,12 @@ const FORCE_STATE: 'loading' | 'empty' | 'thin' | null = null;
 export default function ExerciseDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const unit = useUnit();
   const [metric, setMetric] = useState<Metric>('e1rm');
   const [range, setRange] = useState<Range>('3M');
   const [scrub, setScrub] = useState<number | null>(null);
 
-  const base = id ? liftDetail(id, metric, range) : null;
+  const base = id ? liftDetail(id, metric, range, unit) : null;
   const detail =
     base && FORCE_STATE === 'thin'
       ? { ...base, points: base.points.slice(-1), delta: 0, thin: true }

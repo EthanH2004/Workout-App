@@ -5,7 +5,7 @@
  * helpers — never stored. Swap for TanStack queries over queries.ts later.
  */
 import { epleyOneRepMax } from '../../utils/oneRepMax';
-import { kgToLb, lbToKg } from '../../utils/units';
+import { lbToKg, toDisplayInt, type WeightUnit } from '../../utils/units';
 import { groupThousands } from '../../utils/format';
 
 export type Metric = 'e1rm' | 'volume' | 'heaviest';
@@ -100,18 +100,23 @@ const LIFTS: Lift[] = [
 
 const round = Math.round;
 
-function metricValueLb(s: LiftSession, metric: Metric): number {
-  if (metric === 'e1rm') return kgToLb(epleyOneRepMax(s.weightKg, s.reps));
-  if (metric === 'volume') return kgToLb(s.volumeKg);
-  return kgToLb(s.weightKg);
+function rawMetricKg(s: LiftSession, metric: Metric): number {
+  if (metric === 'e1rm') return epleyOneRepMax(s.weightKg, s.reps);
+  if (metric === 'volume') return s.volumeKg;
+  return s.weightKg;
 }
 
-/** Cumulative-max PR flags for a metric (the first session is never a PR). */
+/** Metric value in the display unit, as a whole number. */
+function displayMetric(s: LiftSession, metric: Metric, unit: WeightUnit): number {
+  return toDisplayInt(rawMetricKg(s, metric), unit);
+}
+
+/** Cumulative-max PR flags (raw kg, so they don't shift with the display unit). */
 function prFlags(sessions: LiftSession[], metric: Metric): boolean[] {
   let max = -Infinity;
   return sessions.map((s, i) => {
-    const v = metricValueLb(s, metric);
-    const isPR = i > 0 && v > max + 0.001;
+    const v = rawMetricKg(s, metric);
+    const isPR = i > 0 && v > max + 0.0001;
     if (v > max) max = v;
     return isPR;
   });
@@ -136,15 +141,15 @@ export interface ProgressLiftRow {
   thin: boolean;
 }
 
-export function progressLifts(): ProgressLiftRow[] {
+export function progressLifts(unit: WeightUnit): ProgressLiftRow[] {
   return LIFTS.map((l) => {
-    const e1rms = l.sessions.map((s) => kgToLb(epleyOneRepMax(s.weightKg, s.reps)));
+    const e1rms = l.sessions.map((s) => displayMetric(s, 'e1rm', unit));
     const latest = e1rms[e1rms.length - 1];
     return {
       id: l.id,
       name: l.name,
-      e1rmLabel: `${groupThousands(latest)} lb`,
-      deltaLb: round(latest - e1rms[0]),
+      e1rmLabel: `${groupThousands(latest)} ${unit}`,
+      deltaLb: latest - e1rms[0],
       sparkline: e1rms,
       thin: l.sessions.length < 2,
     };
@@ -163,16 +168,16 @@ export interface VolumeCard {
   deltaPct: number;
 }
 
-export function weeklyVolume(range: Range): VolumeCard {
+export function weeklyVolume(range: Range, unit: WeightUnit): VolumeCard {
   const count = WEEK_COUNT[range];
   const weeksKg = WEEKLY_VOLUME_KG.slice(-count);
-  const bars = weeksKg.map((kg) => kgToLb(kg));
-  const totalLb = bars.reduce((a, b) => a + b, 0);
-  // % vs the previous 4 weeks ("vs last month").
+  const bars = weeksKg.map((kg) => toDisplayInt(kg, unit));
+  const totalKg = weeksKg.reduce((a, b) => a + b, 0);
+  // % vs the previous 4 weeks ("vs last month") — unit-independent.
   const recent = WEEKLY_VOLUME_KG.slice(-4).reduce((a, b) => a + b, 0);
   const prior = WEEKLY_VOLUME_KG.slice(-8, -4).reduce((a, b) => a + b, 0);
   const deltaPct = prior > 0 ? round(((recent - prior) / prior) * 100) : 0;
-  return { bars, totalLabel: groupThousands(totalLb), deltaPct };
+  return { bars, totalLabel: groupThousands(toDisplayInt(totalKg, unit)), deltaPct };
 }
 
 /* ----------------------------- Exercise detail ---------------------------- */
@@ -197,14 +202,14 @@ export interface LiftDetail {
   thin: boolean;
 }
 
-export function liftDetail(id: string, metric: Metric, range: Range): LiftDetail | null {
+export function liftDetail(id: string, metric: Metric, range: Range, unit: WeightUnit): LiftDetail | null {
   const l = findLift(id);
   if (!l) return null;
 
   const flags = prFlags(l.sessions, metric);
   const start = Math.max(0, l.sessions.length - RANGE_COUNT[range]);
   const points: ChartPoint[] = l.sessions.slice(start).map((s, i) => ({
-    value: round(metricValueLb(s, metric)),
+    value: displayMetric(s, metric, unit),
     label: s.dateLabel,
     isPR: flags[start + i],
   }));
@@ -213,30 +218,30 @@ export function liftDetail(id: string, metric: Metric, range: Range): LiftDetail
   const delta = points.length > 1 ? heroValue - points[0].value : 0;
 
   // Lifetime stats (always e1RM-based for "best set" + PR·1RM).
-  const e1rms = l.sessions.map((s) => kgToLb(epleyOneRepMax(s.weightKg, s.reps)));
+  const e1rms = l.sessions.map((s) => displayMetric(s, 'e1rm', unit));
   let bestIdx = 0;
   e1rms.forEach((v, i) => {
     if (v > e1rms[bestIdx]) bestIdx = i;
   });
   const bestS = l.sessions[bestIdx];
-  const heaviest = Math.max(...l.sessions.map((s) => kgToLb(s.weightKg)));
+  const heaviest = Math.max(...l.sessions.map((s) => toDisplayInt(s.weightKg, unit)));
   const e1Flags = prFlags(l.sessions, 'e1rm');
 
   return {
     name: l.name,
-    unit: 'lb',
+    unit,
     points,
     heroValue,
     delta,
     deltaLabel: RANGE_LABEL[range],
-    bestSet: `${round(kgToLb(bestS.weightKg))} × ${bestS.reps}`,
-    heaviestLabel: `${groupThousands(heaviest)} lb`,
-    prLabel: `${groupThousands(Math.max(...e1rms))} lb`,
+    bestSet: `${toDisplayInt(bestS.weightKg, unit)} × ${bestS.reps}`,
+    heaviestLabel: `${groupThousands(heaviest)} ${unit}`,
+    prLabel: `${groupThousands(Math.max(...e1rms))} ${unit}`,
     history: l.sessions
       .map((s, i) => ({
         dateLabel: s.dateLabel,
-        bestSet: `${round(kgToLb(s.weightKg))} × ${s.reps}`,
-        e1rm: round(e1rms[i]),
+        bestSet: `${toDisplayInt(s.weightKg, unit)} × ${s.reps}`,
+        e1rm: e1rms[i],
         isPR: e1Flags[i],
       }))
       .reverse(),

@@ -17,10 +17,9 @@ import { Backspace, Check } from 'phosphor-react-native';
 import { Button } from '../../components/Button';
 import { Text } from '../../components/Text';
 import { colors, elevation, icon, motion, radius, spacing } from '../../theme/tokens';
-import type { WeightUnit } from '../../utils/units';
+import { PLATE_INCREMENTS, type WeightUnit } from '../../utils/units';
 
 const OFFSCREEN = Dimensions.get('window').height;
-const PLATES = [2.5, 5, 10, 25];
 const KEY_ROWS = [
   ['1', '2', '3'],
   ['4', '5', '6'],
@@ -186,6 +185,7 @@ export function NumberPadSheet({
     repsNum > 0;
 
   const plateSign = plateSubtract ? '−' : '+';
+  const plates = PLATE_INCREMENTS[unit];
 
   function submit() {
     if (!valid) return;
@@ -268,7 +268,7 @@ export function NumberPadSheet({
                 {plateSign}
               </Text>
             </Pressable>
-            {PLATES.map((delta) => (
+            {plates.map((delta) => (
               <Pressable
                 key={delta}
                 accessibilityRole="button"

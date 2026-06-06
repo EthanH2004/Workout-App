@@ -12,6 +12,7 @@ import {
   type Range,
 } from '../../src/features/progress/progressData';
 import { BarChart, Sparkline } from '../../src/features/progress/ProgressCharts';
+import { useUnit } from '../../src/features/settings/settingsStore';
 
 // Preview empty / thin / loading / error on the simulator; null = populated.
 const FORCE_STATE: 'empty' | 'thin' | 'loading' | 'error' | null = null;
@@ -19,11 +20,12 @@ const FORCE_STATE: 'empty' | 'thin' | 'loading' | 'error' | null = null;
 /** Progress tab (§2.7): the calm gallery of gains. */
 export default function ProgressScreen() {
   const router = useRouter();
+  const unit = useUnit();
   const [range, setRange] = useState<Range>('3M');
 
-  const vol = weeklyVolume(range);
+  const vol = weeklyVolume(range, unit);
   const thin = FORCE_STATE === 'thin';
-  const lifts = progressLifts().map((l) =>
+  const lifts = progressLifts(unit).map((l) =>
     thin ? { ...l, thin: true, deltaLb: 0, sparkline: l.sparkline.slice(-1) } : l,
   );
   const bars = thin ? vol.bars.slice(-1) : vol.bars;
@@ -69,7 +71,7 @@ export default function ProgressScreen() {
         <View style={styles.heroRow}>
           <Text variant="displayL">{vol.totalLabel}</Text>
           <Text variant="caption" color="textSecondary" style={styles.unit}>
-            lb
+            {unit}
           </Text>
         </View>
         <Text
