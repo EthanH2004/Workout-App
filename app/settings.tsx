@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CaretLeft, CaretRight } from 'phosphor-react-native';
+import { PRIVACY_URL, TERMS_URL } from '../src/config/links';
 import {
   Card,
   ScreenScaffold,
@@ -36,10 +37,17 @@ const SYNC_DISPLAY: Record<SyncState, { dot: ColorToken; text: string }> = {
   error: { dot: 'warning', text: "Couldn't sync" },
 };
 
+const comingSoon = () =>
+  Alert.alert('Coming soon', 'This will be available in a future update.');
+
+function openExternal(url: string) {
+  Linking.openURL(url).catch(() => Alert.alert("Couldn't open link", 'Please try again later.'));
+}
+
 /** Settings (§2.10): preferences (units!), sync, account, about. No tab bar. */
 export default function SettingsScreen() {
   const router = useRouter();
-  const { session, signOut } = useAuth();
+  const { session } = useAuth();
   const settings = useSettings();
 
   const email = session?.user.email ?? '—';
@@ -51,7 +59,14 @@ export default function SettingsScreen() {
       'This permanently deletes your account and all workout data. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete account', style: 'destructive', onPress: () => signOut() },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          // TODO: BEFORE App Store submission this MUST actually delete the Supabase
+          // auth user + all owned rows (sessions, routines, custom exercises), then
+          // sign out. Required by Apple Guideline 5.1.1 (account deletion).
+          onPress: comingSoon,
+        },
       ],
     );
   }
@@ -109,7 +124,7 @@ export default function SettingsScreen() {
             </Text>
           )}
         </Row>
-        <NavRow label="Export workout data" onPress={() => {}} />
+        <NavRow label="Export workout data" onPress={comingSoon} />
       </Card>
 
       <SectionLabel style={styles.groupLabel}>Account</SectionLabel>
@@ -128,8 +143,8 @@ export default function SettingsScreen() {
 
       <SectionLabel style={styles.groupLabel}>About</SectionLabel>
       <Card padding={0} style={styles.group}>
-        <NavRow label="Privacy policy" first onPress={() => {}} />
-        <NavRow label="Terms of service" onPress={() => {}} />
+        <NavRow label="Privacy policy" first onPress={() => openExternal(PRIVACY_URL)} />
+        <NavRow label="Terms of service" onPress={() => openExternal(TERMS_URL)} />
       </Card>
 
       <Pressable

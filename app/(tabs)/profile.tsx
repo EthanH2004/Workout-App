@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CaretRight, DownloadSimple, Gear, Medal, Question } from 'phosphor-react-native';
+import { SUPPORT_EMAIL } from '../../src/config/links';
 import { Card, ScreenScaffold, SectionLabel, StatCard, Text } from '../../src/components';
 import { colors, layout, radius, spacing } from '../../src/theme/tokens';
 import { toDisplayInt } from '../../src/utils/units';
@@ -23,6 +24,16 @@ function deriveName(email: string): string {
   if (!email || email === '—' || isAppleRelay(email)) return 'Lifter';
   const first = email.split('@')[0].split(/[._-]/)[0];
   return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
+const comingSoon = () =>
+  Alert.alert('Coming soon', 'This will be available in a future update.');
+
+function emailSupport() {
+  const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Workout Tracker feedback')}`;
+  Linking.openURL(url).catch(() =>
+    Alert.alert('No mail app', `Reach us at ${SUPPORT_EMAIL}.`),
+  );
 }
 
 /** Profile tab (§2.9): identity, lifetime stats, account links. */
@@ -130,17 +141,17 @@ export default function ProfileScreen() {
           icon={<Medal size={20} color={colors.textSecondary} weight="regular" />}
           label="Personal records"
           value={String(stats.prs)}
-          onPress={() => {}}
+          onPress={comingSoon}
         />
         <ProfileRow
           icon={<DownloadSimple size={20} color={colors.textSecondary} weight="regular" />}
           label="Export data"
-          onPress={() => {}}
+          onPress={comingSoon}
         />
         <ProfileRow
           icon={<Question size={20} color={colors.textSecondary} weight="regular" />}
           label="Help & feedback"
-          onPress={() => {}}
+          onPress={emailSupport}
         />
       </Card>
 
