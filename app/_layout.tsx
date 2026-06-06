@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,8 +12,18 @@ import {
   Archivo_600SemiBold,
 } from '@expo-google-fonts/archivo';
 import { colors } from '../src/theme/tokens';
+import { BrandMark } from '../src/components/BrandMark';
 import { AuthProvider, useAuth } from '../src/features/auth/AuthProvider';
 import { QueryProvider } from '../src/lib/offline';
+
+/** Branded loading shown while the Supabase session is being restored. */
+function Splash() {
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+      <BrandMark />
+    </View>
+  );
+}
 
 SplashScreen.preventAutoHideAsync();
 
@@ -31,6 +42,9 @@ function RootNavigator() {
       router.replace('/home');
     }
   }, [session, initializing, segments, router]);
+
+  // Hold on a splash while the session is restored — no flash of Welcome.
+  if (initializing) return <Splash />;
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>

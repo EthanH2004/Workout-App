@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { CaretLeft } from 'phosphor-react-native';
 import { Screen } from '../../src/components/Screen';
 import { Text } from '../../src/components/Text';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { useAuth } from '../../src/features/auth/AuthProvider';
-import { spacing } from '../../src/theme/tokens';
+import { colors, icon, layout, spacing } from '../../src/theme/tokens';
 
 export default function SignIn() {
+  const router = useRouter();
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
   const [email, setEmail] = useState('');
@@ -42,6 +45,19 @@ export default function SignIn() {
 
   return (
     <Screen>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+        onPress={() => router.back()}
+        style={{
+          width: layout.minTapTarget,
+          height: layout.minTapTarget,
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+        }}
+      >
+        <CaretLeft size={icon.size.standard} color={colors.textPrimary} weight="bold" />
+      </Pressable>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1, justifyContent: 'center' }}
