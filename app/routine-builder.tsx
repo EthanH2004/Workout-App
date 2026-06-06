@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -43,22 +43,37 @@ export default function DayEditorScreen() {
   const router = useRouter();
   const { dayId } = useLocalSearchParams<{ dayId?: string }>();
   const { state, findDay, saveDay } = usePrograms();
-  const initial = useRef(dayId ? findDay(dayId) : null);
 
-  const [name, setName] = useState(initial.current?.day.name ?? '');
-  const [rows, setRows] = useState<EditRow[]>(() =>
-    (initial.current?.day.exercises ?? []).map((e) => ({
+  // Read the day reactively from the live program cache — the same source the
+  // Edit program list renders from. Recomputed every render (not captured once),
+  // so a day resolves by its id as soon as it is in the cache, including a
+  // client-UUID day created optimistically before it has synced to the server.
+  const found = dayId ? findDay(dayId) : null;
+
+  const [seeded, setSeeded] = useState(false);
+  const [name, setName] = useState('');
+  const [rows, setRows] = useState<EditRow[]>([]);
+  const baseline = useRef('');
+
+  // Seed the editor from the day the first time it appears in the cache, then
+  // let local edits own the state until save.
+  useEffect(() => {
+    if (seeded || !found) return;
+    const seededRows: EditRow[] = found.day.exercises.map((e) => ({
       key: e.id,
       exerciseId: e.exerciseId,
       name: e.name,
       equipment: e.equipment,
       targetSets: e.targetSets,
       targetReps: e.targetReps,
-    })),
-  );
-  const baseline = useRef(snapshot(initial.current?.day.name ?? '', rows));
+    }));
+    setName(found.day.name);
+    setRows(seededRows);
+    baseline.current = snapshot(found.day.name, seededRows);
+    setSeeded(true);
+  }, [found, seeded]);
 
-  const dirty = snapshot(name, rows) !== baseline.current;
+  const dirty = seeded && snapshot(name, rows) !== baseline.current;
   const valid = name.trim().length > 0;
 
   function addExercises() {
@@ -89,7 +104,7 @@ export default function DayEditorScreen() {
     setRows((prev) => keys.map((k) => prev.find((r) => r.key === k)).filter(Boolean) as EditRow[]);
 
   function save() {
-    if (!dayId) return;
+    if (!dayId || !seeded) return;
     // key = the day_exercise id for existing rows, a fresh UUID for new ones;
     // the hook diffs against the cached day to insert / update / soft-delete.
     const items: SaveDayItem[] = rows.map((r) => ({
@@ -131,11 +146,23 @@ export default function DayEditorScreen() {
     </View>
   );
 
-  if (!dayId || !initial.current) {
+  // "Gone" only once the library has loaded and the id is genuinely absent —
+  // never while it is still syncing or an optimistic day is settling.
+  if (!dayId || (state === 'ready' && !found && !seeded)) {
     return (
       <ScreenScaffold header={header}>
         <Text variant="body" color="textSecondary" style={styles.gone}>
-          {state === 'loading' ? 'Loading…' : 'This day is no longer available.'}
+          This day is no longer available.
+        </Text>
+      </ScreenScaffold>
+    );
+  }
+
+  if (!seeded) {
+    return (
+      <ScreenScaffold header={header}>
+        <Text variant="body" color="textSecondary" style={styles.gone}>
+          Loading…
         </Text>
       </ScreenScaffold>
     );
