@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChartLineUp, House, ListBullets, Plus, User } from 'phosphor-react-native';
 import { colors, elevation, icon, layout, motion, radius, spacing } from '../theme/tokens';
-import { currentNextDay } from '../features/routines/routinesStore';
+import { useUpNextDay } from '../features/home/homeData';
 import { Text } from './Text';
 
 type TabName = 'home' | 'routines' | 'progress' | 'profile';
@@ -43,6 +43,7 @@ interface TabBarProps {
 export function TabBar({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const up = useUpNextDay();
 
   function renderTab(name: TabName) {
     const routeIndex = state.routes.findIndex((r) => r.name === name);
@@ -94,10 +95,9 @@ export function TabBar({ state, navigation }: TabBarProps) {
               accessibilityRole="button"
               accessibilityLabel="Start workout"
               onPress={() => {
-                const next = currentNextDay();
                 router.push(
-                  next
-                    ? { pathname: '/workout/active', params: { dayId: next.day.id } }
+                  up
+                    ? { pathname: '/workout/active', params: { dayId: up.day.id } }
                     : '/workout/active',
                 );
               }}

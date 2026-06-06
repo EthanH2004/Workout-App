@@ -56,6 +56,7 @@ function RootNavigator() {
         name="workout/active"
         options={{ presentation: 'modal', gestureEnabled: false }}
       />
+      <Stack.Screen name="workout/detail" />
       <Stack.Screen name="exercise-picker" options={{ presentation: 'modal' }} />
       <Stack.Screen name="exercise-detail" />
       <Stack.Screen name="settings" />

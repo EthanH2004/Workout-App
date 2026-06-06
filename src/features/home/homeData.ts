@@ -159,3 +159,28 @@ export function useHome(): { state: HomeState; refetch: () => void } {
 
   return { state, refetch };
 }
+
+/**
+ * The live "up next" day for the current program — the same current-program +
+ * rotation Home uses, exposed lean for the TabBar Start FAB. Null when there is
+ * no current program (caller should start an empty quick workout).
+ */
+export function useUpNextDay(): { program: Program; day: ProgramDay } | null {
+  const { session } = useAuth();
+  const userId = session?.user.id;
+
+  const sessionsQuery = useQuery({
+    queryKey: ['sessions', userId],
+    enabled: !!userId,
+    queryFn: () => fetchHomeSessions(),
+  });
+  const { state: programsState, programs, currentRoutineId } = usePrograms();
+
+  return useMemo(() => {
+    if (programsState !== 'ready' || !currentRoutineId) return null;
+    const currentProgram = programs.find((p) => p.id === currentRoutineId) ?? null;
+    if (!currentProgram || currentProgram.days.length === 0) return null;
+    const real = (sessionsQuery.data ?? []).filter(isReal);
+    return { program: currentProgram, day: rotateNextDay(currentProgram, real) };
+  }, [programsState, programs, currentRoutineId, sessionsQuery.data]);
+}

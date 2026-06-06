@@ -22,6 +22,8 @@ import {
 } from '../../src/features/home/homeData';
 import type { Program, ProgramDay } from '../../src/features/routines/routinesStore';
 
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
 /** Build the Home "Up next" view from the current program's next day. */
 function buildUpNext(program: Program, day: ProgramDay): HomeUpNext {
   return {
@@ -118,7 +120,7 @@ function UpNextCard({ upNext, dayId }: { upNext: HomeUpNext; dayId: string }) {
         {upNext.routineDayName}
       </Text>
       <Text variant="caption" color="textSecondary" style={styles.upNextMeta}>
-        {`${upNext.groupName} · ${upNext.exerciseCount} exercises · ${upNext.totalSets} sets`}
+        {`${upNext.groupName} · ${plural(upNext.exerciseCount, 'exercise')} · ${plural(upNext.totalSets, 'set')}`}
       </Text>
 
       <View style={styles.exList}>
@@ -129,7 +131,7 @@ function UpNextCard({ upNext, dayId }: { upNext: HomeUpNext; dayId: string }) {
               {ex.name}
             </Text>
             <Text variant="caption" color="textSecondary">
-              {`${ex.targetSets} sets`}
+              {plural(ex.targetSets, 'set')}
             </Text>
           </View>
         ))}
@@ -201,13 +203,15 @@ function RecentRow({
   first: boolean;
   unit: WeightUnit;
 }) {
-  // The read-only session summary route isn't built yet; row is press-ready for it.
-  const sub = `${formatShortDate(new Date(session.startedAt))}  ·  ${session.setsCount} sets  ·  ${groupThousands(
+  const router = useRouter();
+  const sub = `${formatShortDate(new Date(session.startedAt))}  ·  ${plural(session.setsCount, 'set')}  ·  ${groupThousands(
     toDisplayInt(session.volumeKg, unit),
   )} ${unit}`;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={`${session.name} details`}
+      onPress={() => router.push({ pathname: '/workout/detail', params: { id: session.id } })}
       style={({ pressed }) => [
         styles.recentRow,
         !first && styles.recentRowDivider,

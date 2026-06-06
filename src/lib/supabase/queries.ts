@@ -438,6 +438,7 @@ export async function fetchHomeSessions(limit = 30): Promise<HomeSessionRow[]> {
 
 /** A session reduced to what Progress/Exercise-detail need: date + per-exercise sets. */
 export interface ProgressSessionRow {
+  id: string;
   started_at: string;
   session_exercises: {
     exercise_id: string;
@@ -455,13 +456,77 @@ export async function fetchProgressSessions(): Promise<ProgressSessionRow[]> {
   const { data, error } = await supabase
     .from('workout_sessions')
     .select(
-      'started_at, session_exercises(exercise_id, exercise_name, session_sets(weight_kg, reps, completed))',
+      'id, started_at, session_exercises(exercise_id, exercise_name, session_sets(weight_kg, reps, completed))',
     )
     .is('deleted_at', null)
     .order('started_at', { ascending: false })
     .limit(400);
   if (error) throw error;
   return (data ?? []) as unknown as ProgressSessionRow[];
+}
+
+/** One session's full detail for the read-only workout view. */
+export interface SessionDetailRow {
+  id: string;
+  name: string | null;
+  started_at: string;
+  ended_at: string | null;
+  session_exercises: {
+    id: string;
+    exercise_name: string;
+    position: number;
+    session_sets: {
+      id: string;
+      set_index: number;
+      weight_kg: number | null;
+      reps: number | null;
+      completed: boolean;
+    }[];
+  }[];
+}
+
+/** Read one session by id (RLS-scoped to the owner); null if missing/deleted. */
+export async function fetchSessionDetail(id: string): Promise<SessionDetailRow | null> {
+  const { data, error } = await supabase
+    .from('workout_sessions')
+    .select(
+      'id, name, started_at, ended_at, session_exercises(id, exercise_name, position, session_sets(id, set_index, weight_kg, reps, completed))',
+    )
+    .eq('id', id)
+    .is('deleted_at', null)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as unknown as SessionDetailRow | null) ?? null;
+}
+
+export interface DeleteSessionInput {
+  sessionId: string;
+  exerciseIds: string[]; // resolved client-side so the soft-delete replays offline
+}
+
+/** Soft-delete a session + its exercises + sets (offline-replayable). */
+export async function deleteSession(input: DeleteSessionInput): Promise<void> {
+  const patch = { deleted_at: now(), updated_at: now() };
+  if (input.exerciseIds.length) {
+    const { error } = await supabase
+      .from('session_sets')
+      .update(patch)
+      .in('session_exercise_id', input.exerciseIds)
+      .is('deleted_at', null);
+    if (error) throw error;
+  }
+  const { error: exErr } = await supabase
+    .from('session_exercises')
+    .update(patch)
+    .eq('session_id', input.sessionId)
+    .is('deleted_at', null);
+  if (exErr) throw exErr;
+  const { error: sErr } = await supabase
+    .from('workout_sessions')
+    .update(patch)
+    .eq('id', input.sessionId)
+    .is('deleted_at', null);
+  if (sErr) throw sErr;
 }
 
 /* ----------------------------- account / export -------------------------- */

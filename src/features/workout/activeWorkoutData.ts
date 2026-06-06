@@ -156,6 +156,7 @@ const DEFAULT_NEW_SETS = 3;
 export type ActiveAction =
   | { type: 'TOGGLE_COMPLETE'; exerciseId: string; setId: string }
   | { type: 'ADD_SET'; exerciseId: string }
+  | { type: 'REMOVE_SET'; exerciseId: string; setId: string }
   | { type: 'LOG_SET'; exerciseId: string; setId: string; weightKg: number; reps: number }
   | { type: 'EDIT_SET'; exerciseId: string; setId: string; weightKg: number; reps: number }
   | { type: 'ADD_EXERCISES'; exercises: NewExerciseInput[] };
@@ -190,6 +191,14 @@ export function activeReducer(state: ActiveSession, action: ActiveAction): Activ
       return mapExercise(state, action.exerciseId, (ex) => ({
         ...ex,
         sets: [...ex.sets, set(ex.sets.length + 1, null, null, false)],
+      }));
+    case 'REMOVE_SET':
+      // Drop the set and re-number the rest so set indices stay 1..n.
+      return mapExercise(state, action.exerciseId, (ex) => ({
+        ...ex,
+        sets: ex.sets
+          .filter((s) => s.id !== action.setId)
+          .map((s, i) => ({ ...s, setIndex: i + 1 })),
       }));
     case 'LOG_SET':
       // Number-pad "Log & next set": write values and mark the set complete.

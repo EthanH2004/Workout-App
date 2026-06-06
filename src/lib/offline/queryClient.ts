@@ -2,10 +2,12 @@ import { QueryClient } from '@tanstack/react-query';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { mmkvPersistStorage } from './storage';
 import {
+  deleteSession,
   insertCustomExercise,
   insertSession,
   runProgramMutation,
   updateUnitPreference,
+  type DeleteSessionInput,
   type NewCustomExercise,
   type ProgramAction,
   type SaveSessionInput,
@@ -55,6 +57,14 @@ queryClient.setMutationDefaults(['sessions', 'save'], {
   // Defined here (not on the component's useMutation) so it still fires after the
   // Active Workout screen unmounts on finish, refreshing the session-derived
   // screens (Home, Progress, Exercise detail).
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ['sessions'] });
+    queryClient.invalidateQueries({ queryKey: ['progress-sessions'] });
+  },
+});
+
+queryClient.setMutationDefaults(['sessions', 'delete'], {
+  mutationFn: (vars: DeleteSessionInput) => deleteSession(vars),
   onSettled: () => {
     queryClient.invalidateQueries({ queryKey: ['sessions'] });
     queryClient.invalidateQueries({ queryKey: ['progress-sessions'] });

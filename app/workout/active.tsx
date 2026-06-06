@@ -2,14 +2,16 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type Rea
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { CaretDown, Clock, Plus } from 'phosphor-react-native';
+import { CaretDown, Clock, Plus, Trash } from 'phosphor-react-native';
 import {
   Button,
   Card,
@@ -292,6 +294,9 @@ function ActiveWorkout({ found }: { found: { program: Program; day: ProgramDay }
                 onPressSet={(set) => openPad(exercise, set)}
                 onToggleComplete={(set) => handleToggleComplete(exercise.id, set)}
                 onAddSet={() => dispatch({ type: 'ADD_SET', exerciseId: exercise.id })}
+                onRemoveSet={(set) =>
+                  dispatch({ type: 'REMOVE_SET', exerciseId: exercise.id, setId: set.id })
+                }
               />
             ))}
 
@@ -331,6 +336,50 @@ function ActiveWorkout({ found }: { found: { program: Program; day: ProgramDay }
 
 /* ------------------------------ exercise card ----------------------------- */
 
+const SWIPE_DELETE_AT = -76; // px past which release commits the delete
+
+/** Swipe a set row left past the threshold to remove it (haptic on commit). */
+function SwipeToDelete({ onDelete, children }: { onDelete: () => void; children: ReactNode }) {
+  const tx = useSharedValue(0);
+
+  const fireDelete = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onDelete();
+  };
+
+  const pan = Gesture.Pan()
+    .activeOffsetX([-12, 12]) // horizontal intent
+    .failOffsetY([-10, 10]) // let the list scroll win on vertical drags
+    .onUpdate((e) => {
+      tx.value = Math.min(0, e.translationX); // left only
+    })
+    .onEnd((e) => {
+      if (e.translationX < SWIPE_DELETE_AT || e.velocityX < -800) {
+        tx.value = withTiming(-500, { duration: 160 }, (done) => {
+          if (done) runOnJS(fireDelete)();
+        });
+      } else {
+        tx.value = withSpring(0, motion.spring);
+      }
+    });
+
+  const fgStyle = useAnimatedStyle(() => ({ transform: [{ translateX: tx.value }] }));
+  const bgStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(tx.value, [SWIPE_DELETE_AT, -8, 0], [1, 0.4, 0]),
+  }));
+
+  return (
+    <View>
+      <Animated.View style={[styles.swipeBg, bgStyle]} pointerEvents="none">
+        <Trash size={18} color={colors.textOnAccent} weight="bold" />
+      </Animated.View>
+      <GestureDetector gesture={pan}>
+        <Animated.View style={[styles.swipeFg, fgStyle]}>{children}</Animated.View>
+      </GestureDetector>
+    </View>
+  );
+}
+
 function ExerciseCard({
   exercise,
   first,
@@ -340,6 +389,7 @@ function ExerciseCard({
   onPressSet,
   onToggleComplete,
   onAddSet,
+  onRemoveSet,
 }: {
   exercise: ActiveExercise;
   first: boolean;
@@ -349,6 +399,7 @@ function ExerciseCard({
   onPressSet: (set: ActiveSet) => void;
   onToggleComplete: (set: ActiveSet) => void;
   onAddSet: () => void;
+  onRemoveSet: (set: ActiveSet) => void;
 }) {
   // One surface treatment for every card — no privileged "active" exercise (the
   // highlighted set row shows where the user is). §8.5
@@ -380,15 +431,16 @@ function ExerciseCard({
             ? 'active'
             : 'todo';
         return (
-          <SetRow
-            key={s.id}
-            index={s.setIndex}
-            weight={values.weight}
-            reps={values.reps}
-            state={state}
-            onPress={() => onPressSet(s)}
-            onToggleComplete={() => onToggleComplete(s)}
-          />
+          <SwipeToDelete key={s.id} onDelete={() => onRemoveSet(s)}>
+            <SetRow
+              index={s.setIndex}
+              weight={values.weight}
+              reps={values.reps}
+              state={state}
+              onPress={() => onPressSet(s)}
+              onToggleComplete={() => onToggleComplete(s)}
+            />
+          </SwipeToDelete>
         );
       })}
 
@@ -517,6 +569,17 @@ const styles = StyleSheet.create({
   },
   addSetLabel: {
     fontFamily: fontFamily.medium,
+  },
+  swipeBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.destructive,
+    borderRadius: radius.sm,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingRight: spacing[4],
+  },
+  swipeFg: {
+    backgroundColor: colors.surface,
   },
   addExercise: {
     marginTop: spacing[4],
