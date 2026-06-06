@@ -343,6 +343,7 @@ export interface SaveSessionInput {
     exerciseId: string;
     exerciseName: string;
     position: number;
+    equipment: string | null; // optimistic UI only (no equipment column on session_exercises)
   }[];
   sets: {
     id: string;

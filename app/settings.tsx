@@ -18,6 +18,7 @@ import { useAuth } from '../src/features/auth/AuthProvider';
 import { useExportData } from '../src/features/profile/profileData';
 import { deleteAccount } from '../src/lib/supabase/queries';
 import { queryClient } from '../src/lib/offline/queryClient';
+import { useSyncStatus } from '../src/lib/offline/useSyncStatus';
 import {
   setRestReminder,
   setSyncEnabled,
@@ -30,15 +31,19 @@ const UNIT_OPTIONS: { label: string; value: WeightUnit }[] = [
   { label: 'kg', value: 'kg' },
 ];
 
-// Mock sync status for the Status row; real status comes from the offline queue.
-type SyncState = 'synced' | 'syncing' | 'offline' | 'error';
-const SYNC_STATE: SyncState = 'synced';
-const SYNC_DISPLAY: Record<SyncState, { dot: ColorToken; text: string }> = {
-  synced: { dot: 'success', text: 'Synced · just now' },
-  syncing: { dot: 'accent', text: 'Syncing…' },
-  offline: { dot: 'textTertiary', text: 'Offline · last synced 2h ago' },
-  error: { dot: 'warning', text: "Couldn't sync" },
-};
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+/** Truthful sync status from connectivity + the offline mutation queue. */
+function syncDisplay(online: boolean, pending: number): { dot: ColorToken; text: string } {
+  if (!online) {
+    return {
+      dot: 'textTertiary',
+      text: pending > 0 ? `Offline · ${plural(pending, 'change')} pending` : 'Offline',
+    };
+  }
+  if (pending > 0) return { dot: 'accent', text: `${plural(pending, 'change')} pending` };
+  return { dot: 'success', text: 'All changes synced' };
+}
 
 function openExternal(url: string) {
   Linking.openURL(url).catch(() => Alert.alert("Couldn't open link", 'Please try again later.'));
@@ -50,6 +55,7 @@ export default function SettingsScreen() {
   const { session, signOut } = useAuth();
   const settings = useSettings();
   const { exportData } = useExportData();
+  const { online, pending } = useSyncStatus();
 
   const email = session?.user.email ?? '—';
   const provider = session?.user.app_metadata?.provider === 'apple' ? 'Apple' : 'Email';
@@ -98,7 +104,7 @@ export default function SettingsScreen() {
     );
   }
 
-  const status = settings.syncEnabled ? SYNC_DISPLAY[SYNC_STATE] : null;
+  const status = settings.syncEnabled ? syncDisplay(online, pending) : null;
 
   const header = (
     <View style={styles.nav}>
