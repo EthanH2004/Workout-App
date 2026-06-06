@@ -44,6 +44,7 @@ function RootNavigator() {
       />
       <Stack.Screen name="exercise-picker" options={{ presentation: 'modal' }} />
       <Stack.Screen name="exercise-detail" />
+      <Stack.Screen name="settings" />
       <Stack.Screen name="program-editor" options={{ presentation: 'modal' }} />
       {/* gestureEnabled off so swipe-down can't bypass the unsaved-changes confirm. */}
       <Stack.Screen
