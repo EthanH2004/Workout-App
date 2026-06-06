@@ -42,6 +42,284 @@ export async function insertCustomExercise(input: NewCustomExercise): Promise<vo
   if (error) throw error;
 }
 
+/* ------------------------------- programs --------------------------------- */
+
+const now = () => new Date().toISOString();
+
+/** One day_exercise row with the referenced exercise's name/equipment embedded. */
+export interface DayExerciseWithName {
+  id: string;
+  routine_day_id: string;
+  exercise_id: string;
+  position: number;
+  target_sets: number | null;
+  target_reps: number | null;
+  exercises: { name: string; equipment: string | null } | null;
+}
+
+export interface ProgramData {
+  routines: { id: string; name: string; position: number }[];
+  days: { id: string; routine_id: string; name: string; position: number }[];
+  dayExercises: DayExerciseWithName[];
+}
+
+/**
+ * Load the user's whole library in three RLS-scoped reads (routines, days,
+ * day-exercises with the exercise name embedded); the hook assembles the tree.
+ */
+export async function fetchProgramData(): Promise<ProgramData> {
+  const [r, d, e] = await Promise.all([
+    supabase.from('routines').select('id, name, position').is('deleted_at', null).order('position'),
+    supabase
+      .from('routine_days')
+      .select('id, routine_id, name, position')
+      .is('deleted_at', null)
+      .order('position'),
+    supabase
+      .from('routine_day_exercises')
+      .select('id, routine_day_id, exercise_id, position, target_sets, target_reps, exercises(name, equipment)')
+      .is('deleted_at', null)
+      .order('position'),
+  ]);
+  if (r.error) throw r.error;
+  if (d.error) throw d.error;
+  if (e.error) throw e.error;
+  return {
+    routines: r.data ?? [],
+    days: d.data ?? [],
+    dayExercises: (e.data ?? []) as unknown as DayExerciseWithName[],
+  };
+}
+
+interface DayExerciseWrite {
+  id: string;
+  exerciseId: string;
+  position: number;
+  targetSets: number;
+  targetReps: number;
+  // For optimistic UI only — there is no name column on routine_day_exercises;
+  // the persisted row derives its name from exercise_id. Ignored by the writes.
+  name: string;
+  equipment: string | null;
+}
+
+/**
+ * Every program edit, as one offline-replayable action. Vars carry resolved
+ * client UUIDs + owner_id so the registered mutationFn is self-contained.
+ */
+export type ProgramAction =
+  | { type: 'createProgram'; id: string; ownerId: string; name: string; position: number }
+  | { type: 'renameProgram'; id: string; name: string }
+  | { type: 'deleteProgram'; id: string }
+  | { type: 'addDay'; id: string; ownerId: string; routineId: string; name: string; position: number }
+  | { type: 'deleteDay'; id: string }
+  | { type: 'reorderDays'; updates: { id: string; position: number }[] }
+  | {
+      type: 'saveDay';
+      dayId: string;
+      name: string;
+      ownerId: string;
+      insert: DayExerciseWrite[];
+      update: DayExerciseWrite[];
+      deleteIds: string[];
+    }
+  | { type: 'setCurrent'; userId: string; routineId: string | null }
+  | {
+      type: 'adoptProgram';
+      userId: string;
+      program: { id: string; ownerId: string; name: string; position: number };
+      days: { id: string; ownerId: string; routineId: string; name: string; position: number }[];
+      exercises: {
+        id: string;
+        ownerId: string;
+        routineDayId: string;
+        exerciseId: string;
+        position: number;
+        targetSets: number;
+        targetReps: number;
+        name: string; // optimistic UI only
+        equipment: string | null; // optimistic UI only
+      }[];
+    };
+
+function dayExerciseRows(
+  rows: DayExerciseWrite[],
+  ownerId: string,
+  routineDayId: string,
+) {
+  return rows.map((r) => ({
+    id: r.id,
+    owner_id: ownerId,
+    routine_day_id: routineDayId,
+    exercise_id: r.exerciseId,
+    position: r.position,
+    target_sets: r.targetSets,
+    target_reps: r.targetReps,
+    updated_at: now(),
+  }));
+}
+
+/** Apply one program action to Supabase. Registered as the mutationFn (offline-replayable). */
+export async function runProgramMutation(action: ProgramAction): Promise<void> {
+  switch (action.type) {
+    case 'createProgram': {
+      const { error } = await supabase.from('routines').insert({
+        id: action.id,
+        owner_id: action.ownerId,
+        name: action.name,
+        position: action.position,
+        updated_at: now(),
+      });
+      if (error) throw error;
+      return;
+    }
+    case 'renameProgram': {
+      const { error } = await supabase
+        .from('routines')
+        .update({ name: action.name, updated_at: now() })
+        .eq('id', action.id);
+      if (error) throw error;
+      return;
+    }
+    case 'deleteProgram': {
+      const patch = { deleted_at: now(), updated_at: now() };
+      const { error: rErr } = await supabase
+        .from('routines')
+        .update(patch)
+        .eq('id', action.id)
+        .is('deleted_at', null);
+      if (rErr) throw rErr;
+      const { error: dErr } = await supabase
+        .from('routine_days')
+        .update(patch)
+        .eq('routine_id', action.id)
+        .is('deleted_at', null);
+      if (dErr) throw dErr;
+      return;
+    }
+    case 'addDay': {
+      const { error } = await supabase.from('routine_days').insert({
+        id: action.id,
+        owner_id: action.ownerId,
+        routine_id: action.routineId,
+        name: action.name,
+        position: action.position,
+        updated_at: now(),
+      });
+      if (error) throw error;
+      return;
+    }
+    case 'deleteDay': {
+      const patch = { deleted_at: now(), updated_at: now() };
+      const { error: dErr } = await supabase
+        .from('routine_days')
+        .update(patch)
+        .eq('id', action.id)
+        .is('deleted_at', null);
+      if (dErr) throw dErr;
+      const { error: eErr } = await supabase
+        .from('routine_day_exercises')
+        .update(patch)
+        .eq('routine_day_id', action.id)
+        .is('deleted_at', null);
+      if (eErr) throw eErr;
+      return;
+    }
+    case 'reorderDays': {
+      for (const u of action.updates) {
+        const { error } = await supabase
+          .from('routine_days')
+          .update({ position: u.position, updated_at: now() })
+          .eq('id', u.id);
+        if (error) throw error;
+      }
+      return;
+    }
+    case 'saveDay': {
+      const { error: nameErr } = await supabase
+        .from('routine_days')
+        .update({ name: action.name, updated_at: now() })
+        .eq('id', action.dayId);
+      if (nameErr) throw nameErr;
+      if (action.deleteIds.length) {
+        const { error } = await supabase
+          .from('routine_day_exercises')
+          .update({ deleted_at: now(), updated_at: now() })
+          .in('id', action.deleteIds);
+        if (error) throw error;
+      }
+      for (const u of action.update) {
+        const { error } = await supabase
+          .from('routine_day_exercises')
+          .update({
+            position: u.position,
+            target_sets: u.targetSets,
+            target_reps: u.targetReps,
+            updated_at: now(),
+          })
+          .eq('id', u.id);
+        if (error) throw error;
+      }
+      if (action.insert.length) {
+        const { error } = await supabase
+          .from('routine_day_exercises')
+          .insert(dayExerciseRows(action.insert, action.ownerId, action.dayId));
+        if (error) throw error;
+      }
+      return;
+    }
+    case 'setCurrent': {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ current_routine_id: action.routineId, updated_at: now() })
+        .eq('id', action.userId);
+      if (error) throw error;
+      return;
+    }
+    case 'adoptProgram': {
+      const p = action.program;
+      const { error: pErr } = await supabase
+        .from('routines')
+        .insert({ id: p.id, owner_id: p.ownerId, name: p.name, position: p.position, updated_at: now() });
+      if (pErr) throw pErr;
+      if (action.days.length) {
+        const { error } = await supabase.from('routine_days').insert(
+          action.days.map((d) => ({
+            id: d.id,
+            owner_id: d.ownerId,
+            routine_id: d.routineId,
+            name: d.name,
+            position: d.position,
+            updated_at: now(),
+          })),
+        );
+        if (error) throw error;
+      }
+      if (action.exercises.length) {
+        const { error } = await supabase.from('routine_day_exercises').insert(
+          action.exercises.map((e) => ({
+            id: e.id,
+            owner_id: e.ownerId,
+            routine_day_id: e.routineDayId,
+            exercise_id: e.exerciseId,
+            position: e.position,
+            target_sets: e.targetSets,
+            target_reps: e.targetReps,
+            updated_at: now(),
+          })),
+        );
+        if (error) throw error;
+      }
+      const { error: cErr } = await supabase
+        .from('profiles')
+        .update({ current_routine_id: p.id, updated_at: now() })
+        .eq('id', action.userId);
+      if (cErr) throw cErr;
+      return;
+    }
+  }
+}
+
 /** Read the signed-in user's profile row (created by the signup trigger). */
 export async function fetchProfile(userId: string): Promise<Profile> {
   const { data, error } = await supabase

@@ -16,7 +16,7 @@ import type { Equipment } from '../src/components';
 import { colors, layout, radius, spacing } from '../src/theme/tokens';
 import { uuid } from '../src/utils/uuid';
 import { requestExercises } from '../src/features/exercises/pickerHandoff';
-import { findDay, updateDay, type DayExerciseInput } from '../src/features/routines/routinesStore';
+import { usePrograms, type SaveDayItem } from '../src/features/routines/usePrograms';
 
 type PanGesture = ReturnType<typeof Gesture.Pan>;
 
@@ -42,6 +42,7 @@ const snapshot = (name: string, rows: EditRow[]) =>
 export default function DayEditorScreen() {
   const router = useRouter();
   const { dayId } = useLocalSearchParams<{ dayId?: string }>();
+  const { state, findDay, saveDay } = usePrograms();
   const initial = useRef(dayId ? findDay(dayId) : null);
 
   const [name, setName] = useState(initial.current?.day.name ?? '');
@@ -89,14 +90,17 @@ export default function DayEditorScreen() {
 
   function save() {
     if (!dayId) return;
-    const exercises: DayExerciseInput[] = rows.map((r) => ({
+    // key = the day_exercise id for existing rows, a fresh UUID for new ones;
+    // the hook diffs against the cached day to insert / update / soft-delete.
+    const items: SaveDayItem[] = rows.map((r) => ({
+      id: r.key,
       exerciseId: r.exerciseId,
       name: r.name,
       equipment: r.equipment,
       targetSets: r.targetSets,
       targetReps: r.targetReps,
     }));
-    updateDay(dayId, { name: name.trim(), exercises });
+    saveDay(dayId, name.trim(), items);
     router.back();
   }
 
@@ -131,7 +135,7 @@ export default function DayEditorScreen() {
     return (
       <ScreenScaffold header={header}>
         <Text variant="body" color="textSecondary" style={styles.gone}>
-          This day is no longer available.
+          {state === 'loading' ? 'Loading…' : 'This day is no longer available.'}
         </Text>
       </ScreenScaffold>
     );

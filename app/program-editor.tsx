@@ -5,15 +5,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { List, Plus, Trash } from 'phosphor-react-native';
 import { Button, DraggableList, Input, ScreenScaffold, SectionLabel, Text } from '../src/components';
 import { colors, layout, spacing } from '../src/theme/tokens';
-import {
-  addDay,
-  deleteDay,
-  deleteProgram,
-  renameProgram,
-  reorderDays,
-  useRoutines,
-  type ProgramDay,
-} from '../src/features/routines/routinesStore';
+import type { ProgramDay } from '../src/features/routines/routinesStore';
+import { usePrograms } from '../src/features/routines/usePrograms';
 
 const plural = (n: number) => `${n} ${n === 1 ? 'exercise' : 'exercises'}`;
 
@@ -21,15 +14,29 @@ const plural = (n: number) => `${n} ${n === 1 ? 'exercise' : 'exercises'}`;
 export default function ProgramEditorScreen() {
   const router = useRouter();
   const { programId } = useLocalSearchParams<{ programId: string }>();
-  const { programs } = useRoutines();
-  const program = programs.find((p) => p.id === programId);
+  const { state, findProgram, addDay, deleteDay, deleteProgram, renameProgram, reorderDays } =
+    usePrograms();
+  const program = findProgram(programId);
   const [name, setName] = useState(program?.name ?? '');
+
+  // Persist the rename once (on blur / Done), not on every keystroke.
+  const commitName = () => {
+    const trimmed = name.trim();
+    if (program && trimmed && trimmed !== program.name) renameProgram(program.id, trimmed);
+  };
 
   const header = (
     <View style={styles.nav}>
       <View style={styles.navSpacer} />
       <Text variant="headline">Edit program</Text>
-      <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={spacing[2]}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          commitName();
+          router.back();
+        }}
+        hitSlop={spacing[2]}
+      >
         <Text variant="bodyStrong" color="accentText">
           Done
         </Text>
@@ -41,7 +48,7 @@ export default function ProgramEditorScreen() {
     return (
       <ScreenScaffold header={header}>
         <Text variant="body" color="textSecondary" style={styles.gone}>
-          This program is no longer available.
+          {state === 'loading' ? 'Loading…' : 'This program is no longer available.'}
         </Text>
       </ScreenScaffold>
     );
@@ -51,8 +58,8 @@ export default function ProgramEditorScreen() {
     router.push({ pathname: '/routine-builder', params: { dayId } });
 
   function onAddDay() {
-    const { dayId } = addDay(programId, `Day ${program!.days.length + 1}`);
-    editDay(dayId);
+    const dayId = addDay(programId, `Day ${program!.days.length + 1}`);
+    if (dayId) editDay(dayId);
   }
 
   function confirmDeleteDay(day: ProgramDay) {
@@ -81,10 +88,8 @@ export default function ProgramEditorScreen() {
       <Input
         label="Program name"
         value={name}
-        onChangeText={(t) => {
-          setName(t);
-          renameProgram(programId, t);
-        }}
+        onChangeText={setName}
+        onBlur={commitName}
         placeholder="Program name"
         autoCapitalize="sentences"
       />

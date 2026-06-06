@@ -4,19 +4,12 @@ import { DotsThreeVertical, List, Play, Plus } from 'phosphor-react-native';
 import { Card, EquipmentIcon, ScreenScaffold, SectionLabel, Text } from '../../src/components';
 import { colors, elevation, icon, layout, radius, spacing } from '../../src/theme/tokens';
 import {
-  adoptTemplate,
-  createProgram,
-  deleteProgram,
   programExerciseCount,
-  setCurrentProgram,
   TEMPLATES,
-  useRoutines,
   type Program,
   type RoutineTemplate,
 } from '../../src/features/routines/routinesStore';
-
-// Preview loading / error / empty on the simulator; null = populated.
-const FORCE_STATE: 'loading' | 'error' | 'empty' | null = null;
+import { usePrograms } from '../../src/features/routines/usePrograms';
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const programMeta = (p: Program) =>
@@ -25,10 +18,19 @@ const programMeta = (p: Program) =>
 /** Routines tab (§2.4, program model): current program, library, and starters. */
 export default function RoutinesScreen() {
   const router = useRouter();
-  const { programs, currentProgramId } = useRoutines();
+  const {
+    state,
+    programs,
+    currentRoutineId,
+    refetch,
+    createProgram,
+    adoptTemplate,
+    deleteProgram,
+    setCurrent,
+  } = usePrograms();
 
-  const current = programs.find((p) => p.id === currentProgramId) ?? null;
-  const others = programs.filter((p) => p.id !== currentProgramId);
+  const current = programs.find((p) => p.id === currentRoutineId) ?? null;
+  const others = programs.filter((p) => p.id !== currentRoutineId);
 
   const editDay = (dayId: string) => router.push({ pathname: '/routine-builder', params: { dayId } });
   const startDay = (dayId: string) => router.push({ pathname: '/workout/active', params: { dayId } });
@@ -36,12 +38,12 @@ export default function RoutinesScreen() {
     router.push({ pathname: '/program-editor', params: { programId } });
 
   function newProgram() {
-    const { programId } = createProgram('New program');
-    editProgram(programId);
+    const programId = createProgram('New program');
+    if (programId) editProgram(programId);
   }
 
   function adopt(t: RoutineTemplate) {
-    adoptTemplate(t.id);
+    void adoptTemplate(t);
   }
 
   function confirmDelete(program: Program) {
@@ -54,7 +56,7 @@ export default function RoutinesScreen() {
   function openMenu(program: Program, isCurrent: boolean) {
     const actions: { label: string; run: () => void; destructive?: boolean }[] = [
       { label: 'Edit program', run: () => editProgram(program.id) },
-      ...(isCurrent ? [] : [{ label: 'Set as current', run: () => setCurrentProgram(program.id) }]),
+      ...(isCurrent ? [] : [{ label: 'Set as current', run: () => setCurrent(program.id) }]),
       { label: 'Delete program', run: () => confirmDelete(program), destructive: true },
     ];
     const options = [...actions.map((a) => a.label), 'Cancel'];
@@ -113,7 +115,7 @@ export default function RoutinesScreen() {
     </>
   );
 
-  if (FORCE_STATE === 'loading') {
+  if (state === 'loading') {
     return (
       <ScreenScaffold>
         {nav}
@@ -123,7 +125,22 @@ export default function RoutinesScreen() {
     );
   }
 
-  if (FORCE_STATE === 'empty' || programs.length === 0) {
+  if (state === 'error') {
+    return (
+      <ScreenScaffold>
+        {nav}
+        <Card style={styles.emptyCard}>
+          <Text variant="headline">Couldn't load your programs</Text>
+          <Text variant="caption" color="textSecondary" style={styles.subTight}>
+            Check your connection and try again.
+          </Text>
+        </Card>
+        <NewProgramRow label="Retry" onPress={refetch} />
+      </ScreenScaffold>
+    );
+  }
+
+  if (programs.length === 0) {
     return (
       <ScreenScaffold>
         {nav}
@@ -142,8 +159,6 @@ export default function RoutinesScreen() {
   return (
     <ScreenScaffold>
       {nav}
-
-      {FORCE_STATE === 'error' ? <ErrorBanner /> : null}
 
       {current ? (
         <>
@@ -254,21 +269,6 @@ function NewProgramRow({ label, onPress }: { label: string; onPress: () => void 
         {label}
       </Text>
     </Pressable>
-  );
-}
-
-function ErrorBanner() {
-  return (
-    <View style={styles.banner}>
-      <Text variant="caption" color="textSecondary" style={styles.flex}>
-        Couldn't refresh
-      </Text>
-      <Pressable accessibilityRole="button" onPress={() => {}} hitSlop={spacing[2]}>
-        <Text variant="caption" color="accentText">
-          Retry
-        </Text>
-      </Pressable>
-    </View>
   );
 }
 
@@ -400,15 +400,5 @@ const styles = StyleSheet.create({
     height: 200,
     backgroundColor: colors.surfaceRaised,
     borderRadius: radius.md,
-  },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    paddingVertical: spacing[2],
-    paddingHorizontal: spacing[3],
-    marginTop: spacing[3],
   },
 });
