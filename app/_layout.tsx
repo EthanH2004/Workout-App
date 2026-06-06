@@ -42,6 +42,7 @@ function RootNavigator() {
         name="workout/active"
         options={{ presentation: 'modal', gestureEnabled: false }}
       />
+      <Stack.Screen name="exercise-picker" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }
