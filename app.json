@@ -4,7 +4,7 @@
     "slug": "workout-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/AppIcon/onset-icon-1024.png",
     "scheme": "workouttracker",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0A0A0B",
@@ -20,7 +20,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ethanh.workouttracker"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,8 +32,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#0A0A0B",
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 200
+          "image": "./assets/AppIcon/onset-splash.png",
+          "imageWidth": 320
         }
       ],
       "expo-font"
