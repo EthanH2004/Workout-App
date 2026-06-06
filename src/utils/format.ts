@@ -47,3 +47,15 @@ export function formatLongDate(date: Date): string {
 export function formatShortDate(date: Date): string {
   return `${WEEKDAYS_SHORT[date.getDay()]}, ${MONTHS_SHORT[date.getMonth()]} ${date.getDate()}`;
 }
+
+/** "Jan 2026" — for "since" lines. */
+export function formatMonthYear(date: Date): string {
+  return `${MONTHS_SHORT[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+/** Compact large numbers: 2_100_000 → "2.1M", 96_000 → "96k", 142 → "142". */
+export function formatCompact(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (value >= 10_000) return `${Math.round(value / 1000)}k`;
+  return groupThousands(value);
+}
